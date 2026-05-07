@@ -8,6 +8,7 @@ Modul: Informatik II
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.mensa import router as mensa_router
+from routers.kontakte import router as kontakte_router
 
 app = FastAPI(
     title="Campus-Informationsportal API",
@@ -23,7 +24,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(mensa_router) #MENSA ROUTER JUUURRR
+app.include_router(mensa_router)#MENSA ROUTER JUUURRR
+app.include_router(kontakte_router)#KONTAKTE ROUTER JUUURRR
 
 
 @app.get("/", tags=["Status"])
