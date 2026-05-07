@@ -189,7 +189,71 @@ body {
 .status-card-label { font-size: 13px; color: #64748b; }
 .status-card-value { font-size: 20px; font-weight: 600; color: #0f172a; margin-top: 2px; }
 
-/* ── MODULE-ADD CARD (+ button) ── */
+/* ── MODULE TILE (Dashboard, mit dezentem X auf Hover) ── */
+.module-tile { display: block; }
+
+.module-tile-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s, background 0.15s;
+  font-family: inherit;
+  padding: 0;
+}
+
+.module-tile:hover .module-tile-remove { opacity: 1; }
+
+.module-tile-remove:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: #fef2f2;
+}
+
+/* Stift-Icon zum Bearbeiten – links neben dem X, nur auf eigenen Modulen */
+.module-tile-edit {
+  position: absolute;
+  top: 8px;
+  right: 36px;
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s, background 0.15s;
+  font-family: inherit;
+  padding: 0;
+}
+
+.module-tile:hover .module-tile-edit { opacity: 1; }
+
+.module-tile-edit:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: #eff6ff;
+}
+
+/* ── MODULE-ADD CARD (+ button auf dem Dashboard) ── */
 .add-module-card {
   border: 2px dashed var(--border);
   border-radius: var(--radius);
@@ -214,12 +278,96 @@ body {
 .add-module-plus { font-size: 32px; line-height: 1; }
 .add-module-label { font-size: 13px; margin-top: 6px; }
 
-/* ── MENSA ── */
+/* ── MENSA: Day-Tabs ── */
+.day-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.day-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 76px;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: #475569;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.day-tab:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.day-tab.active {
+  border-color: var(--accent);
+  background: #eff6ff;
+  color: var(--accent-dim);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+}
+
+.day-tab-name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.day-tab-date {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.day-tab.active .day-tab-date { color: var(--accent-dim); }
+
+.day-tab-pill {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 99px;
+}
+
+.day-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 4px 0 12px;
+}
+
+.meal-section { margin-bottom: 24px; }
+
+.meal-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
 .meal-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
-  margin-top: 20px;
+  margin-top: 4px;
 }
 
 .meal-card {
@@ -253,6 +401,71 @@ body {
 
 .badge-green { background: #f0fdf4; color: #16a34a; }
 .badge-gray  { background: #f1f5f9; color: #64748b; }
+.badge-red   { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+
+/* Nicht verfügbares Gericht – Kachel mit grauem Kreuz durch, Text nur gegraut */
+.meal-card-unavailable {
+  position: relative;
+  background: #f8fafc;
+  color: #94a3b8;
+  overflow: hidden;
+}
+
+.meal-card-unavailable .meal-name,
+.meal-card-unavailable .meal-meta {
+  color: #94a3b8;
+}
+
+.meal-card-unavailable .meal-price {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+/* Diagonales graues Kreuz von Ecke zu Ecke */
+.meal-card-unavailable::before,
+.meal-card-unavailable::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.meal-card-unavailable::before {
+  /* Linie 1: links unten → rechts oben */
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 3px),
+    rgba(148, 163, 184, 0.7) 50%,
+    transparent calc(50% + 3px)
+  );
+}
+.meal-card-unavailable::after {
+  /* Linie 2: links oben → rechts unten */
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3px),
+    rgba(148, 163, 184, 0.7) 50%,
+    transparent calc(50% + 3px)
+  );
+}
+
+/* ── MENSA-LEGENDE ── */
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px 16px;
+  margin-top: 4px;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-text {
+  font-size: 13px;
+  color: #475569;
+}
 
 /* ── ADMIN LOGIN ── */
 .login-wrap {
@@ -344,6 +557,426 @@ body {
 .module-option-icon { font-size: 30px; }
 .module-option-name { font-size: 14px; font-weight: 500; margin-top: 8px; color: #0f172a; }
 .module-option-tag  { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+/* +-Tile zum eigenen Modul anlegen – etwas dezenter, gestrichelt */
+.module-option.module-option-add {
+  border-style: dashed;
+  color: #94a3b8;
+}
+.module-option.module-option-add .module-option-icon { color: #94a3b8; line-height: 1; }
+.module-option.module-option-add:hover {
+  color: var(--accent);
+  border-style: dashed;
+}
+.module-option.module-option-add:hover .module-option-icon { color: var(--accent); }
+
+/* Inline-Formular fürs eigene Modul */
+.custom-module-form {
+  margin-top: 20px;
+  padding: 18px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.color-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 99px;
+  border: 2px solid #fff;
+  outline: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, outline-color 0.1s, outline-width 0.1s;
+}
+
+.color-swatch:hover { transform: scale(1.1); }
+
+.color-swatch.active {
+  outline: 2px solid #0f172a;
+  outline-offset: 2px;
+}
+
+.custom-preview {
+  margin: 6px 0 16px;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Builder für Sections und Links im Custom-Modul-Form */
+.builder-block {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.builder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.builder-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+
+.builder-add {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-dim);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.builder-add:hover {
+  border-color: var(--accent);
+  background: #eff6ff;
+}
+
+.builder-item {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.builder-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.builder-item-num {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.builder-remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  padding: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.builder-remove:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: #fef2f2;
+}
+
+/* ── KONTAKTE ── */
+
+/* Filter-Chips unter dem Suchfeld */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.filter-chip {
+  padding: 5px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+/* A-Z Buchstaben-Chips: kompakter, monospace, fixe Breite damit alle gleich aussehen */
+.filter-chip-letter {
+  min-width: 32px;
+  padding: 5px 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  text-align: center;
+}
+
+.filter-chip-letter.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: #94a3b8;
+}
+
+.filter-chip-letter.disabled:hover {
+  border-color: var(--border);
+  color: #94a3b8;
+}
+
+/* Gruppen-Sections (eine pro Bereich/Fakultät) */
+.contact-group {
+  margin-bottom: 28px;
+}
+
+.contact-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.contact-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Großer Buchstabe als Section-Header (für die alphabetische Gruppierung) */
+.contact-group-letter {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace;
+  width: 32px;
+  text-align: center;
+}
+
+.contact-group-count {
+  font-size: 11px;
+  color: #94a3b8;
+  background: #f1f5f9;
+  border-radius: 99px;
+  padding: 1px 8px;
+}
+
+.contacts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.contact-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.contact-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  transform: translateY(-1px);
+}
+
+.contact-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-title {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-phone {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.contact-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e2e8f0;
+  flex-shrink: 0;
+}
+
+.contact-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--accent-dim);
+  background: #eff6ff;
+}
+
+.contact-avatar-large {
+  width: 96px;
+  height: 96px;
+  font-size: 28px;
+}
+
+/* Detail-Seite */
+.contact-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.contact-detail-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.contact-detail-title {
+  font-size: 13px;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.contact-detail-org {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.contact-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px 24px;
+}
+
+.contact-field-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-family: 'IBM Plex Mono', monospace;
+  margin-bottom: 2px;
+}
+
+.contact-field-value {
+  font-size: 14px;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.contact-field-value a {
+  color: var(--accent-dim);
+  text-decoration: none;
+}
+
+.contact-field-value a:hover {
+  text-decoration: underline;
+}
+
+.contact-field-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+}
+
+/* Module-Page-Banner und externe Links */
+.module-banner {
+  border: 1px solid var(--border);
+  border-top: 4px solid;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: #f1f5f9;
+}
+
+.module-banner img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+}
+
+.module-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid;
+  border-radius: 99px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.module-link:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
 
 .btn-row { display: flex; gap: 10px; margin-top: 24px; }
 

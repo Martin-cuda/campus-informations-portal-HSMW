@@ -42,7 +42,9 @@ def menus_filtern(menus: list) -> list:
     """
     geht durch alle gerichte einer Kategorie durch und filtert:
     dummy = true hereaus (SB theke platzhalter also Nudelteller usw)
-    active = false heraus (heute nicht verfügbar)
+    inaktive Gerichte (active=false) werden NICHT mehr rausgefiltert,
+    sondern mit dem Feld "active": False weitergegeben – das Frontend
+    zeigt sie dann durchgestrichen / nicht verfügbar.
     :param menus:
     :return:
     """
@@ -50,25 +52,24 @@ def menus_filtern(menus: list) -> list:
     # Leere Liste, hier am kommen die gefilterten Gerichte rein
     for menu in menus:
         # für jedes Gericht in der Liste...
-        #1. Filter: dummy Einträge überspringen
+        # Filter: dummy Einträge überspringen
         # .get("dummy", False) ->   gibt False zurück wenn "dummy" nicht vorhanden,
         if menu.get("dummy", False):
             continue # continue springt direkt zur nächsten iteration
-        # 2. filter inaktive gerichte überspringen
-        if not menu.get("active", True):
-            continue
 
-    # wenn das gericht alle filter quote unquote überlebt hat dann wird es in ein
-    # sauberes format umgewandelt
-    ergebnis.append({
-        "id": menu.get("id"),
-        "name": menu.get("title_de," "Unbekannt"),
-        "beschreibung": menu.get("description_de", ""),
-        "preis": preis_formatieren(menu.get("prices", {})),
-        "mealtypes": menu.get("mealtypes", []),
-    })
+        # Inaktive Gerichte bleiben drin – das Frontend kümmert sich um die Darstellung
+        # wenn das gericht alle filter quote unquote überlebt hat dann wird es in ein
+        # sauberes format umgewandelt
+        ergebnis.append({
+            "id": menu.get("id"),
+            "name": menu.get("title_de", "Unbekannt"),
+            "beschreibung": menu.get("description_de", ""),
+            "preis": preis_formatieren(menu.get("prices", {})),
+            "mealtypes": menu.get("mealtypes", []),
+            "active": menu.get("active", True),
+        })
     return ergebnis
-
+    
 def tag_verarbeiten(tag: dict) -> dict:
     """
     verarbeitet einen kompletten Tag aus der API geht durch alle gerichte durch und filtert
@@ -113,7 +114,7 @@ async def speiseplan_komplett():
             # wirft z.b. 404 exception wenn http fehler
         except httpx.RequestError as fehler:
             # netzwerk fehler wenn hsmw server nicht erreichbar ist
-            raise HTTPException(status_code=503, details=f"HSMW-API nicht erreichbar: {fehler}")
+            raise HTTPException(status_code=503, detail=f"HSMW-API nicht erreichbar: {fehler}")
     daten = antwort.json()
     tage = [tag_verarbeiten(tag) for tag in daten.get("day", [])]
     return {"tage": tage}

@@ -1,31 +1,94 @@
+// ── ARI (ORIGINAL – Basis) + JEROME (echte JWT-Auth) ─────────────────────
+//
+// [MERGE: Claude] Ari's AdminLogin.jsx als Basis. Die Mock-Login-Logik
+// (hardcoded admin/hsmw2025) wurde durch einen echten Call an Jerome's
+// /login-Endpoint ersetzt. Das JWT-Token wird im sessionStorage gespeichert.
+// Bei Backend-Ausfall fällt die Seite auf den Demo-Modus zurück.
+//
+// Änderungen gegenüber Ari's Original:
+//   1. handleLogin ist jetzt async und ruft POST /login auf (Jerome)
+//   2. JWT-Token wird in sessionStorage.setItem("token", ...) gespeichert
+//   3. Fehlerbehandlung für Netzwerkfehler (Backend offline)
+//   4. Mock-Fallback bleibt erhalten für den Fall dass Backend offline ist
+// ──────────────────────────────────────────────────────────────────────────
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Placeholder credentials – Jerome ersetzt das durch echte Auth
-const ADMIN_USER = "admin";
-const ADMIN_PASS = "hsmw2025";
+const API = "http://localhost:8000";
+
+// [MERGE: Claude] Demo-Fallback Credentials (Ari's Original) – werden nur
+// benutzt wenn der Backend-Server nicht erreichbar ist.
+const DEMO_USER = "admin";
+const DEMO_PASS = "hsmw2025";
 
 export default function AdminLogin() {
-  const [user, setUser]     = useState("");
-  const [pass, setPass]     = useState("");
-  const [error, setError]   = useState("");
+  // ── ARI: State (unverändert) ───────────────────────────────────────────
+  const [user, setUser]       = useState("");
+  const [pass, setPass]       = useState("");
+  const [error, setError]     = useState("");
   const [success, setSuccess] = useState(false);
+  // [MERGE: Claude] Neu: loading-State damit der Button während des Requests disabled ist
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    if (user === ADMIN_USER && pass === ADMIN_PASS) {
-      setError("");
-      setSuccess(true);
-      setTimeout(() => navigate("/"), 1200);
-    } else {
-      setError("Benutzername oder Passwort falsch.");
+  // ── [MERGE: Claude] Login-Logik: zuerst Jerome's Backend, dann Demo-Fallback ──
+  const handleLogin = async () => {
+    if (!user.trim() || !pass.trim()) {
+      setError("Bitte Benutzername und Passwort eingeben.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // ── JEROME: POST /login mit Query-Parametern (Jerome's API-Format) ──
+      const url = new URL(`${API}/login`);
+      url.searchParams.set("name", user);
+      url.searchParams.set("password", pass);
+
+      const r = await fetch(url.toString(), { method: "POST" });
+
+      if (r.ok) {
+        // ── JEROME: JWT-Token aus Antwort speichern ──────────────────────
+        const data = await r.json();
+        sessionStorage.setItem("token", data.access_token);
+        sessionStorage.setItem("token_type", data.token_type);
+        setSuccess(true);
+        setTimeout(() => navigate("/"), 1200);
+        return;
+      }
+
+      // Backend erreichbar aber Credentials falsch (401)
+      if (r.status === 401) {
+        setError("Benutzername oder Passwort falsch.");
+        return;
+      }
+
+      setError(`Server-Fehler: HTTP ${r.status}`);
+    } catch {
+      // ── [MERGE: Claude] Fallback: Backend offline → Demo-Modus ─────────
+      // Wenn Jerome's Backend nicht läuft, weichen wir auf die hardcodierten
+      // Demo-Credentials zurück damit das Frontend trotzdem testbar bleibt.
+      if (user === DEMO_USER && pass === DEMO_PASS) {
+        sessionStorage.setItem("token", "demo-token");
+        setSuccess(true);
+        setTimeout(() => navigate("/"), 1200);
+      } else {
+        setError("Backend nicht erreichbar. Demo: admin / hsmw2025");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
+  // ── ARI: Enter-Key Handler (unverändert) ──────────────────────────────
   const handleKey = (e) => {
     if (e.key === "Enter") handleLogin();
   };
 
+  // ── ARI: JSX (fast unverändert – nur loading-State am Button) ─────────
   return (
     <div>
       <div className="page-header fade-up">
@@ -51,6 +114,7 @@ export default function AdminLogin() {
                 </div>
               </div>
 
+              {/* ── ARI: Formularfelder (unverändert) ── */}
               <label className="login-label">Benutzername</label>
               <input
                 className="login-input"
@@ -60,6 +124,7 @@ export default function AdminLogin() {
                 onChange={(e) => setUser(e.target.value)}
                 onKeyDown={handleKey}
                 autoComplete="username"
+                disabled={loading}
               />
 
               <label className="login-label">Passwort</label>
@@ -71,16 +136,25 @@ export default function AdminLogin() {
                 onChange={(e) => setPass(e.target.value)}
                 onKeyDown={handleKey}
                 autoComplete="current-password"
+                disabled={loading}
               />
 
-              <button className="btn-primary" onClick={handleLogin}>
-                Anmelden
+              {/* [MERGE: Claude] opacity wenn loading – Rest unverändert (Ari) */}
+              <button
+                className="btn-primary"
+                onClick={handleLogin}
+                disabled={loading}
+                style={{ opacity: loading ? 0.7 : 1 }}
+              >
+                {loading ? "Wird geprüft…" : "Anmelden"}
               </button>
 
               {error && <div className="login-error">{error}</div>}
 
+              {/* [MERGE: Claude] Hinweis erweitert um Jerome-Endpoint */}
               <div style={{ marginTop: 20, fontSize: 11, color: "#94a3b8", textAlign: "center" }}>
-                Demo-Credentials: admin / hsmw2025
+                Auth via Jerome's JWT-Endpoint (POST /login)<br />
+                Demo-Fallback: admin / hsmw2025
               </div>
             </>
           )}

@@ -3,38 +3,74 @@ Campus-Informationsportal – HS Mittweida
 Backend: FastAPI
 Team: Martin Weber, Jerome Martin, Ari Richter, Fabian Busse
 Modul: Informatik II
+
+[MERGE: Claude] Gegenüber Ari's original main.py wurden folgende Änderungen vorgenommen:
+  1. Jerome's Auth-Router (routers/login_router.py) importiert und eingebunden.
+  2. Startup-Event hinzugefügt (aus Jerome's main.py) der die Admin-Tabelle
+     in der Datenbank anlegt falls sie noch nicht existiert.
+  3. Import von datenbank.engine + admin_table.Base für den Startup-Event.
+  4. CORS-Origins um localhost:5174 ergänzt (Fallback falls Vite anderen Port nimmt).
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# ── ARI: Mensa, Module, Kontakte Router ─────────────────────────────────
 from routers.mensa import router as mensa_router
+from routers.modules import router as modules_router
 from routers.kontakte import router as kontakte_router
+
+# ── JEROME: Auth / Login Router ──────────────────────────────────────────
+# [MERGE: Claude] Hinzugefügt. Jerome's Login-Endpunkte als Router eingebunden.
+from routers.login_router import router as login_router
+
+# ── JEROME: DB-Startup (aus Jerome's main.py) ────────────────────────────
+# [MERGE: Claude] Hinzugefügt. Erstellt die Admin-Tabelle beim Start falls
+# sie noch nicht vorhanden ist. Kommt 1:1 aus Jerome's main.py.
+from datenbank import engine, Base
 
 app = FastAPI(
     title="Campus-Informationsportal API",
     description="REST-API für das modulare Campus-Portal der HS Mittweida.",
-    version="0.1.0",
+    version="0.2.0",  # [MERGE: Claude] Version auf 0.2.0 erhöht (Jerome-Features)
 )
 
-# CORS erlauben (React-Dev-Server läuft auf anderem Port)
+
+# ── JEROME: DB-Tabellen beim Start erstellen ─────────────────────────────
+# [MERGE: Claude] Aus Jerome's main.py übernommen, unverändert.
+@app.on_event("startup")
+def startup():
+    Base.metadata.create_all(bind=engine)
+
+
+# ── ARI: CORS-Middleware ──────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite default port
+    # [MERGE: Claude] :5174 als Fallback ergänzt (Vite wählt manchmal Alternativ-Port)
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(mensa_router)#MENSA ROUTER JUUURRR
-app.include_router(kontakte_router)#KONTAKTE ROUTER JUUURRR
+
+# ── ARI: Router einbinden ─────────────────────────────────────────────────
+app.include_router(mensa_router)    # MENSA ROUTER – Ari
+app.include_router(modules_router)  # MODULE ROUTER – Ari
+app.include_router(kontakte_router) # KONTAKTE ROUTER – Ari
+
+# ── JEROME: Auth-Router einbinden ─────────────────────────────────────────
+# [MERGE: Claude] Hinzugefügt.
+app.include_router(login_router)    # LOGIN/AUTH ROUTER – Jerome
 
 
+# ── ARI: Health-Check Endpoints ───────────────────────────────────────────
 @app.get("/", tags=["Status"])
 def root():
     """Health-Check Endpoint – bestätigt, dass die API läuft."""
     return {
         "status": "ok",
         "message": "Campus-Informationsportal API läuft.",
-        "version": "0.1.0",
+        "version": "0.2.0",
     }
 
 
@@ -42,7 +78,3 @@ def root():
 def hello_world():
     """Hello-World-Endpoint für den Initial Commit."""
     return {"message": "Hello World vom Campus-Portal Backend!"}
-
-
-# Mensa-Endpoints folgen in mensa_router.py (Sprint 2)
-# @app.include_router(mensa_router, prefix="/api/mensa")

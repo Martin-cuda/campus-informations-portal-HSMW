@@ -1,10 +1,19 @@
 from tokenize import detect_encoding
+import asyncio
+import time
 
 from fastapi import APIRouter, HTTPException
 import httpx
 router = APIRouter(prefix="/api/contacts", tags = ["Kontakte"])
 
 HSMW_CONTACTS_URL = "https://app.hs-mittweida.de/v2/contacts"
+
+# Einfacher In-Memory-Cache für die angereicherte Kontaktliste.
+# Erster Aufruf zieht für jeden Kontakt den structure-Wert über die Detail-API
+# (parallel, gedrosselt). Danach liegen die Daten 5 Minuten im Cache und alle
+# folgenden Suchen gehen instant – inkl. Suche nach Fakultät/Bereich.
+_KONTAKT_CACHE = {"data": None, "ts": 0.0}
+CACHE_TTL_SEC = 300  # 5 Minuten
 
 async def fetch_hsmw_json(url: str) -> dict:
     """
@@ -47,6 +56,9 @@ def contact_preview(contact: dict) -> dict:
         "name": contact.get("name") or "",
         "companyphone": contact.get("companyphone"),
         "picture": contact.get("picture"),
+        # für die Gruppierung im Frontend (Bereich/Fakultät)
+        "structure": contact.get("structure") or "",
+        "org": contact.get("org") or "",
     }
 
 
@@ -58,8 +70,61 @@ def search_text(contact: dict) -> str:
         contact.get("gname"),
         contact.get("name"),
         contact.get("companyphone"),
+        # Bereich und Org auch durchsuchbar machen
+        contact.get("structure"),
+        contact.get("org"),
     ]
     return " ".join(str(part) for part in parts if part).lower()
+
+
+async def _enrich_kontakt(client: httpx.AsyncClient, contact: dict, semaphore: asyncio.Semaphore) -> dict:
+    """
+    Wenn der Kontakt aus der Liste kein structure-Feld hat, wird über die
+    Detail-API nachgeladen. semaphore drosselt die Concurrency damit wir die
+    HSMW-API nicht mit 600 parallelen Requests überrennen.
+    """
+    if contact.get("structure"):
+        return contact
+    async with semaphore:
+        try:
+            r = await client.get(f"{HSMW_CONTACTS_URL}/{contact.get('id')}")
+            r.raise_for_status()
+            detail = r.json()
+            return {
+                **contact,
+                "structure": detail.get("structure") or "",
+                "org": detail.get("org") or contact.get("org") or "",
+            }
+        except Exception:
+            # Wenn die Detail-API für einen Einzelnen mal nicht antwortet,
+            # nehmen wir den Kontakt unangereichert weiter – kein Crash.
+            return contact
+
+
+async def _get_enriched_contacts() -> list:
+    """
+    Liefert die volle Kontaktliste inkl. structure/org für jeden Eintrag.
+    Mit kleinem In-Memory-Cache (5 Minuten), damit nicht jede Suche neu fetcht.
+    """
+    now = time.time()
+    if _KONTAKT_CACHE["data"] is not None and (now - _KONTAKT_CACHE["ts"]) < CACHE_TTL_SEC:
+        return _KONTAKT_CACHE["data"]
+
+    # Erstmal die normale Liste holen
+    data = await fetch_hsmw_json(HSMW_CONTACTS_URL)
+    raw_list = data.get("contacts", [])
+
+    # Concurrency auf 12 begrenzen – schnell genug, aber höflich zur HSMW-API
+    sem = asyncio.Semaphore(12)
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        enriched = await asyncio.gather(
+            *[_enrich_kontakt(client, c, sem) for c in raw_list],
+            return_exceptions=False,
+        )
+
+    _KONTAKT_CACHE["data"] = list(enriched)
+    _KONTAKT_CACHE["ts"]   = now
+    return _KONTAKT_CACHE["data"]
 
 
 @router.get("/")
@@ -67,9 +132,11 @@ async def contacts_all(q: str = ""):
     """
     GET /api/contacts/
     Gibt alle Kontakte zurück. Optional kann mit ?q=... gesucht werden.
+    Suchfeld inkludiert auch structure/org (Bereich/Fakultät), die wir vorher
+    via Detail-API anreichern und cachen.
     """
-    data = await fetch_hsmw_json(HSMW_CONTACTS_URL)
-    contacts = [contact_preview(contact) for contact in data.get("contacts", [])]
+    raw = await _get_enriched_contacts()
+    contacts = [contact_preview(contact) for contact in raw]
 
     if q.strip():
         query = q.strip().lower()
