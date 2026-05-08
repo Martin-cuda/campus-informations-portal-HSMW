@@ -92,7 +92,7 @@ export default function AdminLogin() {
   return (
     <div>
       <div className="page-header fade-up">
-        <div className="page-title">🔐 Admin Login</div>
+        <div className="page-title">Admin Login</div>
         <div className="page-subtitle">Nur für autorisierte Benutzer</div>
       </div>
 
@@ -100,7 +100,6 @@ export default function AdminLogin() {
         <div className="card">
           {success ? (
             <div className="state-box">
-              <div className="state-box-icon">✅</div>
               <div className="state-box-text" style={{ color: "#16a34a" }}>
                 Login erfolgreich – Weiterleitung…
               </div>

@@ -25,7 +25,7 @@ export default function ComingSoon({ module }) {
   // Felder defensiv auslesen mit Fallback-Werten, falls module gar nicht
   // reingegeben wurde oder einzelne Felder fehlen.
   const label  = module?.label || "Modul";
-  const icon   = module?.icon  || "📦";
+  const icon   = module?.icon  || "";
   const tag    = module?.tag   || "";
   const desc   = module?.description?.trim();
   const color  = module?.color || "#3b82f6";
@@ -108,11 +108,10 @@ export default function ComingSoon({ module }) {
         </div>
       )}
 
-      {/* Fallback wenn nichts gepflegt wurde: 🚧 Coming-Soon-Box mit Routen-Info */}
+      {/* Fallback wenn nichts gepflegt wurde: Coming-Soon-Box mit Routen-Info */}
       {!hatInhalt && (
         <div className="card fade-up" style={{ borderTop: `3px solid ${color}` }}>
           <div className="state-box">
-            <div className="state-box-icon">🚧</div>
             <div className="state-box-text">
               <strong>{label}</strong> ist aktiviert – die Inhalte folgen in Kürze.
             </div>

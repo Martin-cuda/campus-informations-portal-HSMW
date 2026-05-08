@@ -17,17 +17,17 @@ import { useLocation, useNavigate } from "react-router-dom";
 // Vorgefertigte Module die per Klick ohne Formular aktiviert werden können.
 // Jeder Eintrag entspricht später einem Modul-Objekt im Backend.
 const AVAILABLE_MODULES = [
-  { id: "stundenplan", label: "Stundenplan", icon: "📅", path: "/stundenplan", tag: "Neu",
+  { id: "stundenplan", label: "Stundenplan", icon: "", path: "/stundenplan", tag: "Neu",
     description: "Persönlicher Stundenplan deiner Vorlesungen, Seminare und Praktika." },
-  { id: "raumplan",    label: "Raumplan",    icon: "🗺", path: "/raumplan",    tag: "Neu",
+  { id: "raumplan",    label: "Raumplan",    icon: "", path: "/raumplan",    tag: "Neu",
     description: "Übersicht aller Räume und Hörsäle auf dem Campus inkl. Belegung." },
-  { id: "events",      label: "Events",      icon: "🎉", path: "/events",      tag: "Neu",
+  { id: "events",      label: "Events",      icon: "", path: "/events",      tag: "Neu",
     description: "Aktuelle Veranstaltungen, Partys und Hochschul-Events." },
-  { id: "bibliothek",  label: "Bibliothek",  icon: "📚", path: "/bibliothek",  tag: "Neu",
+  { id: "bibliothek",  label: "Bibliothek",  icon: "", path: "/bibliothek",  tag: "Neu",
     description: "Bibliotheks-Zugang, Ausleihen und Öffnungszeiten." },
-  { id: "kontakt",     label: "Kontakt",     icon: "📞", path: "/kontakt",     tag: "Neu",
+  { id: "kontakt",     label: "Kontakt",     icon: "", path: "/kontakt",     tag: "Neu",
     description: "Mitarbeiter-Verzeichnis der HSMW mit Suche, Foto, E-Mail und Durchwahl." },
-  { id: "prüfungen",   label: "Prüfungen",   icon: "📝", path: "/pruefungen",  tag: "Neu",
+  { id: "prüfungen",   label: "Prüfungen",   icon: "", path: "/pruefungen",  tag: "Neu",
     description: "Prüfungsanmeldung, Termine und Notenübersicht." },
 ];
 
@@ -194,7 +194,7 @@ export default function ModuleAdd({ onAdd, existing }) {
     onAdd({
       id,
       label: name,
-      icon: customIcon.trim() || "📦",  // Fallback-Emoji falls leer
+      icon: customIcon.trim() || "",  // Fallback-Emoji falls leer
       path,
       tag: "Eigenes Modul",
       description: customDesc.trim(),
@@ -214,7 +214,7 @@ export default function ModuleAdd({ onAdd, existing }) {
       {/* Header oben passt sich an Modus an */}
       <div className="page-header fade-up">
         <div className="page-title">
-          {istEditMode ? "✎ Modul bearbeiten" : "➕ Modul hinzufügen"}
+          {istEditMode ? "Modul bearbeiten" : "Modul hinzufügen"}
         </div>
         <div className="page-subtitle">
           {istEditMode
@@ -307,7 +307,7 @@ export default function ModuleAdd({ onAdd, existing }) {
             <input
               className="login-input"
               type="text"
-              placeholder="📦"
+              placeholder=""
               value={customIcon}
               onChange={(e) => setCustomIcon(e.target.value)}
               maxLength={4}
@@ -431,7 +431,7 @@ export default function ModuleAdd({ onAdd, existing }) {
               <div className="builder-title" style={{ marginBottom: 8 }}>Vorschau</div>
               <div className="custom-preview" style={{ borderTop: `3px solid ${customColor}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                  <div style={{ fontSize: 22 }}>{customIcon.trim() || "📦"}</div>
+                  <div style={{ fontSize: 22 }}>{customIcon.trim() || ""}</div>
                   <div style={{ fontWeight: 600, color: customColor, fontSize: 16 }}>
                     {customName.trim() || "Mein Modul"}
                   </div>

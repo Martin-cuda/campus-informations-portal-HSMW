@@ -151,18 +151,17 @@ export default function Mensa() {
       {/* Header oben mit Titel links und Legenden-Button rechts */}
       <div className="page-header fade-up" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div className="page-title">🍽 Mensa</div>
+          <div className="page-title">Mensa</div>
           <div className="page-subtitle">Speiseplan · HS Mittweida</div>
         </div>
         <Link to="/mensa/legende" className="btn-secondary" style={{ textDecoration: "none", whiteSpace: "nowrap" }}>
-          📋 Legende
+         Legende
         </Link>
       </div>
 
       {/* Lade-Spinner wenn der Request noch läuft */}
       {status === "loading" && (
         <div className="state-box fade-up">
-          <div className="state-box-icon">⏳</div>
           <div className="state-box-text">Speiseplan wird geladen…</div>
         </div>
       )}
@@ -170,7 +169,6 @@ export default function Mensa() {
       {/* Fehlermeldung wenn der Request fehlschlug (Backend offline o.ä.) */}
       {status === "error" && (
         <div className="state-box fade-up">
-          <div className="state-box-icon">⚠️</div>
           <div className="state-box-text">
             Speiseplan konnte nicht geladen werden.
             <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{errorMsg}</div>
@@ -181,7 +179,6 @@ export default function Mensa() {
       {/* Empty-State wenn keine zukünftigen Tage da sind */}
       {status === "empty" && (
         <div className="state-box fade-up">
-          <div className="state-box-icon">🤷</div>
           <div className="state-box-text">Aktuell ist kein Speiseplan verfügbar.</div>
         </div>
       )}
@@ -215,7 +212,6 @@ export default function Mensa() {
           {/* Falls der aktive Tag keine Kategorien/Gerichte hat */}
           {(aktiverTag?.kategorien || []).length === 0 && (
             <div className="state-box fade-up">
-              <div className="state-box-icon">🤷</div>
               <div className="state-box-text">Für diesen Tag gibt es keinen Speiseplan.</div>
             </div>
           )}

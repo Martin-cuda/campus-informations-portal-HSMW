@@ -79,7 +79,7 @@ export default function Raumfinder() {
     <div>
       {/* [MERGE: Claude] page-header statt <h1> (konsistentes Layout) */}
       <div className="page-header fade-up">
-        <div className="page-title">🗺 Raumfinder</div>
+        <div className="page-title">Raumfinder</div>
         <div className="page-subtitle">Gebäude & Belegungsstatus · HS Mittweida</div>
       </div>
 

@@ -54,7 +54,7 @@ export default function Sidebar({ modules }) {
           className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
         >
           {/* [MERGE: Claude] Icon wieder eingefügt (Ari) – Fabian hatte es entfernt */}
-          <span className="nav-icon">🏠</span> Dashboard
+          Dashboard
         </NavLink>
 
         <div className="nav-section-label">Module</div>
@@ -73,14 +73,13 @@ export default function Sidebar({ modules }) {
           className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
         >
           {/* [MERGE: Claude] Icon wieder eingefügt (Ari) */}
-          <span className="nav-icon">➕</span> Modul hinzufügen
+          Modul hinzufügen
         </NavLink>
       </nav>
 
       {/* ── FABIAN + ARI: Admin-Button ──────────────────────────────── */}
       <div className="sidebar-footer">
         <Link to="/admin" className="admin-btn">
-          <span>🔐</span>
           <span>Admin Login</span>
         </Link>
       </div>

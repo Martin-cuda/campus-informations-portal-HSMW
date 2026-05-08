@@ -122,7 +122,7 @@ export default function Kontakte() {
     <div>
       {/* Header */}
       <div className="page-header fade-up">
-        <div className="page-title">📞 Kontakte</div>
+        <div className="page-title">Kontakte</div>
         <div className="page-subtitle">Mitarbeitende und Anlaufstellen · HS Mittweida</div>
       </div>
 
@@ -197,7 +197,6 @@ export default function Kontakte() {
       {/* Fehler-State */}
       {status === "error" && (
         <div className="state-box fade-up">
-          <div className="state-box-icon">⚠️</div>
           <div className="state-box-text">
             Kontakte konnten nicht geladen werden.
             <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{errorMsg}</div>
@@ -208,7 +207,6 @@ export default function Kontakte() {
       {/* Empty-State */}
       {status === "ok" && contacts.length === 0 && (
         <div className="state-box fade-up">
-          <div className="state-box-icon">🤷</div>
           <div className="state-box-text">
             {query ? "Keine Treffer." : "Keine Kontakte verfügbar."}
           </div>
@@ -244,7 +242,7 @@ export default function Kontakte() {
                           {c.displayname || `${c.gname} ${c.name}`.trim() || "—"}
                         </div>
                         {c.title && <div className="contact-title">{c.title}</div>}
-                        {c.companyphone && <div className="contact-phone">📞 {c.companyphone}</div>}
+                        {c.companyphone && <div className="contact-phone">{c.companyphone}</div>}
                       </div>
                     </Link>
                   );

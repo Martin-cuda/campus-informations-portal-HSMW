@@ -12,10 +12,10 @@ import { Link, useNavigate } from "react-router-dom";
 // Statische Status-Kacheln oben auf dem Dashboard – reine Anzeige, keine Logik.
 // Werden in einer Reihe gerendert mit jeweils Icon, Label, Wert und farbigem Wert.
 const STATUS_CARDS = [
-  { icon: "🖥", label: "Backend API", value: "Online", color: "#22c55e" },
-  { icon: "📅", label: "Semester", value: "SS 2025", color: "#3b82f6" },
-  { icon: "👥", label: "Team", value: "4 Personen", color: "#8b5cf6" },
-  { icon: "🔖", label: "Version", value: "v0.1.0", color: "#f59e0b" },
+  { icon: "", label: "Backend API", value: "Online", color: "#22c55e" },
+  { icon: "", label: "Semester", value: "SS 2025", color: "#3b82f6" },
+  { icon: "", label: "Team", value: "4 Personen", color: "#8b5cf6" },
+  { icon: "", label: "Version", value: "v0.1.0", color: "#f59e0b" },
 ];
 
 // Module die fest verbaut sind und nicht über die UI entfernt werden dürfen.

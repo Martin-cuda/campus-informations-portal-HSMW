@@ -71,8 +71,8 @@ export default function App() {
   };
 
   const baseModules = [
-    { id: "mensa", label: "Mensa", icon: "🍽", path: "/mensa" },
-    { id: "news",  label: "News",  icon: "📰", path: "/news"  },
+    { id: "mensa", label: "Mensa", icon: "", path: "/mensa" },
+    { id: "news",  label: "News",  icon: "", path: "/news"  },
   ];
 
   const allModules = [...baseModules, ...extraModules];

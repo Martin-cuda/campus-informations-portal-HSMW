@@ -34,7 +34,7 @@ export default function MensaLegende() {
     <div>
       {/* Header mit Titel + Untertitel */}
       <div className="page-header fade-up">
-        <div className="page-title">📋 Legende</div>
+        <div className="page-title">Legende</div>
         <div className="page-subtitle">Speisetyp-Codes des Speiseplans · HS Mittweida</div>
       </div>
 

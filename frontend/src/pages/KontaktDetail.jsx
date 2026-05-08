@@ -65,7 +65,7 @@ export default function KontaktDetail() {
       {/* Header oben mit Titel links und Zurück-Button rechts */}
       <div className="page-header fade-up" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div className="page-title">📞 Kontaktdetails</div>
+          <div className="page-title">Kontaktdetails</div>
           <div className="page-subtitle">HS Mittweida</div>
         </div>
         <Link to={backHref} className="btn-secondary" style={{ textDecoration: "none", whiteSpace: "nowrap" }}>
@@ -76,7 +76,6 @@ export default function KontaktDetail() {
       {/* Lade-Anzeige während die Anfrage läuft */}
       {status === "loading" && (
         <div className="state-box fade-up">
-          <div className="state-box-icon">⏳</div>
           <div className="state-box-text">Kontakt wird geladen…</div>
         </div>
       )}
@@ -84,7 +83,6 @@ export default function KontaktDetail() {
       {/* 404 vom Backend → freundlichere Meldung */}
       {status === "notfound" && (
         <div className="state-box fade-up">
-          <div className="state-box-icon">🤷</div>
           <div className="state-box-text">Kontakt nicht gefunden.</div>
         </div>
       )}
@@ -92,7 +90,6 @@ export default function KontaktDetail() {
       {/* Allgemeiner Fehler-State (Backend offline o.ä.) */}
       {status === "error" && (
         <div className="state-box fade-up">
-          <div className="state-box-icon">⚠️</div>
           <div className="state-box-text">
             Konnte den Kontakt nicht laden.
             <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{errorMsg}</div>
