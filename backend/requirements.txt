@@ -11,3 +11,4 @@ sqlalchemy>=2.0
 psycopg2-binary>=2.9    # PostgreSQL-Treiber (psycopg2 ohne Kompilierung)
 python-jose[cryptography]>=3.3.0  # JWT-Tokens
 passlib>=1.7.4 #Cryptographie
+bcrypt>=5.0.0
