@@ -18,7 +18,7 @@ export default function Sidebar({ modules }) {
     <aside className="sidebar">
       {/* ── FABIAN: Logo-Bereich mit HSMW-Branding ─────────────────── */}
       <div className="sidebar-logo">
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: "16px", textDecoration: "none" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {/* FABIAN: HSMW-Logo-Bild (liegt in /public/hsmw-logo.png) */}
             <img
@@ -42,7 +42,7 @@ export default function Sidebar({ modules }) {
             <div className="sidebar-logo-title">Campus-Portal</div>
             <div className="sidebar-logo-sub">HS Mittweida</div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* ── ARI: Navigation ─────────────────────────────────────────── */}
