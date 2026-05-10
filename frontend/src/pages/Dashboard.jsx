@@ -62,7 +62,7 @@ export default function Dashboard({ modules, onRemove }) {
       {/* Page-Header oben mit Titel und Untertitel */}
       <div className="page-header fade-up">
         <div className="page-title">Dashboard</div>
-        <div className="page-subtitle">Campus-Informationsportal · HS Mittweida · Informatik II</div>
+        <div className="page-subtitle">test</div>
       </div>
 
       {/* Status Row: vier kleine Karten in einem Grid */}

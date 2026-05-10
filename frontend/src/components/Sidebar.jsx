@@ -39,8 +39,8 @@ export default function Sidebar({ modules }) {
             </span>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div className="sidebar-logo-title">Campus-Portal</div>
-            <div className="sidebar-logo-sub">HS Mittweida</div>
+            <div className="sidebar-logo-title"> </div>
+            <div className="sidebar-logo-sub"> </div>
           </div>
         </div>
       </div>

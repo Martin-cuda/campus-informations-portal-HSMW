@@ -12,18 +12,6 @@
     "links": []
   },
   {
-    "id": "raumplan",
-    "label": "Raumplan",
-    "icon": "🗺",
-    "path": "/raumplan",
-    "tag": "Neu",
-    "description": "Übersicht aller Räume und Hörsäle auf dem Campus inkl. Belegung.",
-    "color": "#3b82f6",
-    "banner": "",
-    "sections": [],
-    "links": []
-  },
-  {
     "id": "prüfungen",
     "label": "Prüfungen",
     "icon": "📝",
