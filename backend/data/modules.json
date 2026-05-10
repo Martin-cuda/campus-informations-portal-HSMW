@@ -1,23 +1,11 @@
 [
   {
-    "id": "kontakt",
-    "label": "Kontakt",
-    "icon": "📞",
-    "path": "/kontakt",
+    "id": "raumfinder",
+    "label": "Raumfinder",
+    "icon": "",
+    "path": "/raumfinder",
     "tag": "Neu",
-    "description": "Mitarbeiter-Verzeichnis der HSMW mit Suche, Foto, E-Mail und Durchwahl.",
-    "color": "#3b82f6",
-    "banner": "",
-    "sections": [],
-    "links": []
-  },
-  {
-    "id": "prüfungen",
-    "label": "Prüfungen",
-    "icon": "📝",
-    "path": "/pruefungen",
-    "tag": "Neu",
-    "description": "Prüfungsanmeldung, Termine und Notenübersicht.",
+    "description": "Übersicht aller Räume und Hörsäle auf dem Campus inkl. Belegung.",
     "color": "#3b82f6",
     "banner": "",
     "sections": [],

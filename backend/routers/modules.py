@@ -57,7 +57,7 @@ class ModuleLink(BaseModel):
 class Module(BaseModel):
     id: str = Field(min_length=1, max_length=80)
     label: str = Field(min_length=1, max_length=80)
-    icon: str = Field(min_length=1, max_length=4)
+    icon: str = Field(min_length=0, max_length=4, default="")
     path: str = Field(min_length=2, max_length=80)
     tag: Optional[str] = ""
     description: Optional[str] = ""

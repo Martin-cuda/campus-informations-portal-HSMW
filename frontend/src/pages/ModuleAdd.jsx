@@ -19,7 +19,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 const AVAILABLE_MODULES = [
   { id: "stundenplan", label: "Stundenplan", icon: "", path: "/stundenplan", tag: "Neu",
     description: "Persönlicher Stundenplan deiner Vorlesungen, Seminare und Praktika." },
-  { id: "raumplan",    label: "Raumplan",    icon: "", path: "/raumplan",    tag: "Neu",
+  { id: "raumfinder",  label: "Raumfinder",  icon: "", path: "/raumfinder",  tag: "Neu",
     description: "Übersicht aller Räume und Hörsäle auf dem Campus inkl. Belegung." },
   { id: "events",      label: "Events",      icon: "", path: "/events",      tag: "Neu",
     description: "Aktuelle Veranstaltungen, Partys und Hochschul-Events." },
