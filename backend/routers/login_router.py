@@ -18,6 +18,8 @@ from sqlalchemy.orm import Session
 from datenbank import get_db
 from admin_table import Admin
 from auth import create_access_token, get_current_user
+from security import verify_password
+
 
 router = APIRouter(tags=["Auth"])
 
@@ -25,15 +27,19 @@ router = APIRouter(tags=["Auth"])
 # ── JEROME: login endpoint (aus login.py + main.py) ──────────────────────
 @router.post("/login")
 def login(name: str, password: str, db: Session = Depends(get_db)):
+    #user als Variable aus Datenbank entnehmen
     user = db.query(Admin).filter(Admin.name == name).first()
 
-    if not user or user.password != password:
+    #Schauen ob user existiert und Passwort prüfen
+    if not user or not verify_password(password, user.password):
         raise HTTPException(status_code=401, detail="Falsche Login-Daten")
 
     token = create_access_token({"sub": user.name})
 
-    return {"access_token": token, "token_type": "bearer"}
-
+    return {
+        "access_token": token,
+        "token_type": "bearer"
+    }
 
 # ── JEROME: geschützter Test-Endpoint (aus main.py) ───────────────────────
 @router.get("/protected")
