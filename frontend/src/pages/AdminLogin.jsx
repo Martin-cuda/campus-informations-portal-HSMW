@@ -28,8 +28,12 @@ export default function AdminLogin() {
   const [pass, setPass]       = useState("");
   const [error, setError]     = useState("");
   const [success, setSuccess] = useState(false);
+  const [recoveryUser, setRecoveryUser] = useState("");
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryMsg, setRecoveryMsg] = useState("");
   // [MERGE: Claude] Neu: loading-State damit der Button während des Requests disabled ist
   const [loading, setLoading] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   const navigate = useNavigate();
 
   // ── [MERGE: Claude] Login-Logik: zuerst Jerome's Backend, dann Demo-Fallback ──
@@ -83,6 +87,39 @@ export default function AdminLogin() {
     }
   };
 
+const handleForgotPassword = async () => {
+  if (!recoveryUser.trim()) {
+    setRecoveryMsg("Bitte Benutzername eingeben.");
+    return;
+  }
+
+  setRecoveryLoading(true);
+  setRecoveryMsg("");
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/auth/forgot-password", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: recoveryUser
+      })
+    });
+
+    const data = await res.json();
+
+    console.log("Recovery response:", data);
+
+    setRecoveryMsg("Falls der Account existiert, wurde eine E-Mail gesendet.");
+
+  } catch (err) {
+    setRecoveryMsg("Server nicht erreichbar.");
+  } finally {
+    setRecoveryLoading(false);
+  }
+};
+
   // ── ARI: Enter-Key Handler (unverändert) ──────────────────────────────
   const handleKey = (e) => {
     if (e.key === "Enter") handleLogin();
@@ -104,7 +141,55 @@ export default function AdminLogin() {
                 Login erfolgreich – Weiterleitung…
               </div>
             </div>
-          ) : (
+          ) : showRecovery ? (
+            <>
+               <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>
+                    Passwort zurücksetzen
+                  </div>
+                  <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}> 
+                    Admin Nutzername eingeben
+                  </div>
+                </div>
+
+                <label className="login-label">Nutzername</label>
+                <input
+                  className="login-input"
+                  type="text"
+                  placeholder="Nutzername"
+                  value={recoveryUser}
+                  onChange={(e) => setRecoveryUser(e.target.value)}
+                />
+
+            <button
+              className="btn-primary"
+              onClick={handleForgotPassword}
+              disabled={recoveryLoading}
+              style={{ opacity: recoveryLoading ? 0.7 : 1 }}
+            >
+              {recoveryLoading
+                ? "Wird gesendet..."
+                : "Reset-Link senden"}
+            </button>
+
+            {recoveryMsg && (
+              <div
+                className="login-error"
+                style={{ marginTop: 10 }}
+              >
+                {recoveryMsg}
+              </div>
+            )}
+
+            <button
+              className="btn-secondary"
+              onClick={() => setShowRecovery(false)}
+              style={{ marginTop: 10 }}
+            >
+              Zurück zum Login
+            </button>
+            </>
+          ):(
             <>
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>Anmelden</div>
@@ -147,6 +232,15 @@ export default function AdminLogin() {
               >
                 {loading ? "Wird geprüft…" : "Anmelden"}
               </button>
+
+              <button
+                className="btn-secondary"
+                onClick={() => setShowRecovery(true)}
+                disabled={loading}
+                style={{ marginTop: 10 }}
+                >
+                  Passwort vergessen
+                </button>
 
               {error && <div className="login-error">{error}</div>}
 
