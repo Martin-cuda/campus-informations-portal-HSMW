@@ -61,6 +61,7 @@ app.include_router(kontakte_router) # KONTAKTE ROUTER – Ari
 # ── JEROME: Auth-Router einbinden ─────────────────────────────────────────
 # [MERGE: Claude] Hinzugefügt.
 app.include_router(login_router)    # LOGIN/AUTH ROUTER – Jerome
+app.include_router(recovery_router, prefix="/auth")
 
 
 # ── ARI: Health-Check Endpoints ───────────────────────────────────────────
