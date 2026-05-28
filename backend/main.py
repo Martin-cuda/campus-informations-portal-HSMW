@@ -20,9 +20,14 @@ from routers.mensa import router as mensa_router
 from routers.modules import router as modules_router
 from routers.kontakte import router as kontakte_router
 
+# ── FABIAN: Raeume-Router ─────────────────────────────────
+from routers.raeume import router as raeume_router  
+from routers.haeuser import router as haeuser_router   
+
 # ── JEROME: Auth / Login Router ──────────────────────────────────────────
 # [MERGE: Claude] Hinzugefügt. Jerome's Login-Endpunkte als Router eingebunden.
 from routers.login_router import router as login_router
+from recovery import router as recovery_router   
 
 # ── JEROME: DB-Startup (aus Jerome's main.py) ────────────────────────────
 # [MERGE: Claude] Hinzugefügt. Erstellt die Admin-Tabelle beim Start falls
@@ -57,6 +62,10 @@ app.add_middleware(
 app.include_router(mensa_router)    # MENSA ROUTER – Ari
 app.include_router(modules_router)  # MODULE ROUTER – Ari
 app.include_router(kontakte_router) # KONTAKTE ROUTER – Ari
+
+# ── FABIAN: Router einbinden ─────────────────────────────────────────────────
+app.include_router(raeume_router)   # RAEUME ROUTER – Fabian
+app.include_router(haeuser_router)  # HAEUSER ROUTER – Fabian
 
 # ── JEROME: Auth-Router einbinden ─────────────────────────────────────────
 # [MERGE: Claude] Hinzugefügt.
