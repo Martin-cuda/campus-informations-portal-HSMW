@@ -24,3 +24,7 @@ MODULE = [
 def generate_default_permission():
     # alle Module erst mit False deklarieren
     return {modul: False for modul in MODULE}
+
+def generate_main_permission():
+    # alle Module erst mit False deklarieren
+    return {modul: True for modul in MODULE}
