@@ -109,9 +109,12 @@ const handleForgotPassword = async () => {
 
     const data = await res.json();
 
-    console.log("Recovery response:", data);
+    if (!res.ok) {
+      setRecoveryMsg(data?.detail || "Fehler beim Senden des Reset-Links.");
+      return;
+    }
 
-    setRecoveryMsg("Falls der Account existiert, wurde eine E-Mail gesendet.");
+    setRecoveryMsg(data?.message || "Falls der Account existiert, wurde eine E-Mail gesendet.");
 
   } catch (err) {
     setRecoveryMsg("Server nicht erreichbar.");
