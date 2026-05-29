@@ -12,3 +12,4 @@ psycopg2-binary>=2.9    # PostgreSQL-Treiber (psycopg2 ohne Kompilierung)
 python-jose[cryptography]>=3.3.0  # JWT-Tokens
 passlib>=1.7.4 #Cryptographie
 bcrypt==4.1.2
+sendgrid>=6.12.5
