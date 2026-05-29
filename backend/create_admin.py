@@ -49,8 +49,8 @@ def create_admin_main(name: str, password: str, mail: str):
         db.close()
 
 if __name__ == "__main__":
-    create_admin_main("HauptAdmin", "hsmwPORTAL", "Test-CampusPortalMailStudent123@web.de")
-    create_admin("Journalist", "123abc", "Test-CampusPortalMailStudent123@web.de") 
-    create_admin("Journalist", "InfoHSMW", "Test-CampusPortalMailStudent123@web.de")
-    create_admin("Mensa", "essenHSMW", "Test-CampusPortalMailStudent123@web.de")
-    create_admin("Haeuser", "HausHSMW", "Test-CampusPortalMailStudent123@web.de")
+    create_admin_main("HauptAdmin", "hsmwPORTAL", "hsmwinfoportal.recovery@gmail.com")
+    create_admin("Journalist", "123abc", "hsmwinfoportal.recovery@gmail.come") 
+    create_admin("Journalist", "InfoHSMW", "hsmwinfoportal.recovery@gmail.com")
+    create_admin("Mensa", "essenHSMW", "hsmwinfoportal.recovery@gmail.com")
+    create_admin("Haeuser", "HausHSMW", "hsmwinfoportal.recovery@gmail.com")
