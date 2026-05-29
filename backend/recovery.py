@@ -1,17 +1,18 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from jose import jwt, JWTError
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from auth import create_access_token
 from datenbank import get_db
 from admin_table import Admin
-from passlib.context import CryptContext
 from pydantic import BaseModel
-
-class ForgotPasswordRequest(BaseModel):
-    username: str
+from mail_service import send_reset_email
+from passlib.context import CryptContext
 
 router = APIRouter()
 
@@ -22,10 +23,12 @@ RESET_TOKEN_EXPIRE_MINUTES = 15
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-# ─────────────────────────────────────────────
-# RESET TOKEN ERSTELLEN
-# ─────────────────────────────────────────────
+class ForgotPasswordRequest(BaseModel):
+    username: str
+
+
 def create_reset_token(username: str):
+    """Erstellt einen JWT Reset-Token"""
     return create_access_token(
         data={
             "sub": username,
@@ -35,70 +38,61 @@ def create_reset_token(username: str):
     )
 
 
-# ─────────────────────────────────────────────
-# TOKEN PRÜFEN
-# ─────────────────────────────────────────────
 def verify_reset_token(token: str):
+    """Prüft einen Reset-Token und gibt den Username zurück"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
         if payload.get("purpose") != "password_reset":
             return None
-
         return payload.get("sub")
-
-    except JWTError:
+    except JWTError as e:
+        print("JWT ERROR:", e)
         return None
 
 
-# ─────────────────────────────────────────────
-# 1. FORGOT PASSWORD
-# ─────────────────────────────────────────────
 @router.post("/forgot-password")
-def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    username = data.username
-    user = db.query(Admin).filter(Admin.name == username).first()
-
-    # wichtig: keine User-Enumeration
-    if not user:
-        return {"message": "Wenn der Account existiert, wurde eine E-Mail gesendet."}
-
-    token = create_reset_token(username)
-
-    # TODO: echte Mail senden
-    # send_email(user.mail, token)
-
-    return {
-        "message": "Wenn der Account existiert, wurde eine E-Mail gesendet.",
-        "debug_token": token  # nur für Entwicklung!
-    }
-
-
-# ─────────────────────────────────────────────
-# 2. RESET PASSWORD
-# ─────────────────────────────────────────────
-@router.post("/reset-password")
-def reset_password(
-    token: str,
-    new_password: str,
+async def forgot_password(
+    
+    data: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
 
+    user = db.query(Admin).filter(Admin.name == data.username).first()
+    print("Gefundener User:", user)
+
+    if not user:
+        print("User nicht gefunden – keine Mail gesendet")
+        return {"message": "Wenn der Account existiert, wurde eine E-Mail gesendet."}
+
+    token = create_reset_token(user.name)
+    print("🔑 Reset-Token erstellt:", token)
+
+    try:
+        background_tasks.add_task(send_reset_email, user.mail, token)
+        print("Mail Task hinzugefügt für:", user.mail)
+    except Exception as e:
+        print("Fehler beim Hinzufügen des Mail Tasks:", e)
+
+    return {"message": "Wenn der Account existiert, wurde eine E-Mail gesendet."}
+
+
+@router.post("/reset-password")
+def reset_password(token: str, new_password: str, db: Session = Depends(get_db)):
     username = verify_reset_token(token)
 
     if not username:
-        raise HTTPException(status_code=400, detail="Ungültiger oder abgelaufener Token")
+        return {"error": "Token ungültig oder abgelaufen"}
 
     user = db.query(Admin).filter(Admin.name == username).first()
+    print("Gefundener User für Passwort-Reset:", user)
 
     if not user:
-        raise HTTPException(status_code=404, detail="User nicht gefunden")
+        return {"error": "User nicht gefunden"}
 
-    # Passwort hashen
     hashed_password = pwd_context.hash(new_password)
-
-    # DB UPDATE
     user.password = hashed_password
     db.commit()
+    print("Passwort erfolgreich geändert für:", username)
 
     return {"message": "Passwort erfolgreich geändert"}
