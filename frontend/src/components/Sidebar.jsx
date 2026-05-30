@@ -1,87 +1,130 @@
-// ── FABIAN (ORIGINAL – Basis) + ARI (Icons + Funktionalität) ─────────────
-//
-// [MERGE: Claude] Fabian's Sidebar.jsx als visuelle Basis (HSMW-Logo,
-// "bttrhsmw"-Branding, Open-Sans-Schrift). Ari's Funktionalität komplett
-// erhalten: Emoji-Icons vor den Nav-Links, useLocation, alle NavLink-Props.
-// Änderungen gegenüber Fabian's Original:
-//   - span className="nav-icon" wieder eingefügt (Ari)
-//   - Dashboard-Link hat wieder das 🏠-Icon (Ari)
-//   - "Modul hinzufügen"-Link hat wieder das ➕-Icon (Ari)
-// ──────────────────────────────────────────────────────────────────────────
-
-import { NavLink, Link, useLocation } from "react-router-dom";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 
 export default function Sidebar({ modules }) {
-  const location = useLocation();   // Ari – wird für zukünftige aktive-State-Logik gebraucht
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const token = sessionStorage.getItem("token");
+
+  // JWT manuell dekodieren (ohne externe library)
+  let username = null;
+
+  if (token && token !== "demo-token") {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = JSON.parse(atob(base64));
+      username = decoded.sub;
+    } catch (err) {
+      console.log("Token konnte nicht gelesen werden");
+    }
+  }
+
+  if (token === "demo-token") {
+    username = "Demo-Admin";
+  }
+
+  const logout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("token_type");
+    navigate("/admin");
+  };
 
   return (
     <aside className="sidebar">
-      {/* ── FABIAN: Logo-Bereich mit HSMW-Branding ─────────────────── */}
+
+      {/* ── LOGO ───────────────────────────── */}
       <div className="sidebar-logo">
-        <Link to="/" style={{ display: "flex", alignItems: "center", gap: "16px", textDecoration: "none" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {/* FABIAN: HSMW-Logo-Bild (liegt in /public/hsmw-logo.png) */}
-            <img
-              src="/hsmw-logo.png"
-              alt="HSMW Logo"
-              style={{ width: "40px", height: "auto" }}
-            />
-            {/* FABIAN: "bttrhsmw"-Branding */}
-            <span
-              style={{
-                fontFamily: "'Open Sans', sans-serif",
-                color: "#2596be",
-                fontWeight: "700",
-                fontSize: "18px",
-              }}
-            >
-              bttrhsmw
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <div className="sidebar-logo-title"> </div>
-            <div className="sidebar-logo-sub"> </div>
-          </div>
+        <Link
+          to="/"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            textDecoration: "none",
+          }}
+        >
+          <img
+            src="/hsmw-logo.png"
+            alt="HSMW Logo"
+            style={{ width: "40px", height: "auto" }}
+          />
+
+          <span
+            style={{
+              fontFamily: "'Open Sans', sans-serif",
+              color: "#2596be",
+              fontWeight: "700",
+              fontSize: "18px",
+            }}
+          >
+            bttrhsmw
+          </span>
         </Link>
       </div>
 
-      {/* ── ARI: Navigation ─────────────────────────────────────────── */}
+      {/* ── NAVIGATION ─────────────────────── */}
       <nav className="sidebar-nav">
         <div className="nav-section-label">Übersicht</div>
+
         <NavLink
           to="/"
           end
-          className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
+          className={({ isActive }) =>
+            "nav-item" + (isActive ? " active" : "")
+          }
         >
-          {/* [MERGE: Claude] Icon wieder eingefügt (Ari) – Fabian hatte es entfernt */}
           Dashboard
         </NavLink>
 
         <div className="nav-section-label">Module</div>
+
         {modules.map((mod) => (
           <NavLink
             key={mod.id}
             to={mod.path}
-            className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
+            className={({ isActive }) =>
+              "nav-item" + (isActive ? " active" : "")
+            }
           >
-            <span className="nav-icon">{mod.icon}</span> {mod.label}
+            <span className="nav-icon">{mod.icon}</span>
+            {mod.label}
           </NavLink>
         ))}
 
         <NavLink
           to="/module-add"
-          className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
+          className={({ isActive }) =>
+            "nav-item" + (isActive ? " active" : "")
+          }
         >
-          {/* [MERGE: Claude] Icon wieder eingefügt (Ari) */}
           Modul hinzufügen
         </NavLink>
       </nav>
 
-      {/* ── FABIAN + ARI: Admin-Button ──────────────────────────────── */}
+      {/* ── FOOTER / LOGIN STATUS ─────────── */}
       <div className="sidebar-footer">
-        <Link to="/admin" className="admin-btn">
-          <span>Admin Login</span>
-        </Link>
+
+        {username ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ fontSize: "13px", opacity: 0.8 }}>
+              👤 Angemeldet als: <b>{username}</b>
+            </div>
+
+            <button
+              onClick={logout}
+              className="admin-btn"
+              style={{ cursor: "pointer" }}
+            >
+              Abmelden
+            </button>
+          </div>
+        ) : (
+          <Link to="/admin" className="admin-btn">
+            Admin Login
+          </Link>
+        )}
+
       </div>
     </aside>
   );
