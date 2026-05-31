@@ -35,6 +35,7 @@ HAEUSER = [
     { "id": "1-139C", "name": "Raum 1-139C", "etage": "1. OG" },
     { "id": "1-126C", "name": "Raum 1-126C", "etage": "1. OG" },
     { "id": "1-110A", "name": "Raum 1-110A", "etage": "1. OG" },
+    { "id": "1-105A", "name": "Raum 1-015A", "etage": "1. OG" },
     { "id": "1-015B", "name": "Raum 1-015B", "etage": "EG" },
     { "id": "1-402A", "name": "Raum 1-402A", "etage": "4. OG" },
     { "id": "1-132D", "name": "Raum 1-132D", "etage": "1. OG" },

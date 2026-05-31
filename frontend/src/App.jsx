@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Sidebar from "./components/Sidebar";
+import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Mensa from "./pages/Mensa";
 import MensaLegende from "./pages/MensaLegende";
@@ -71,8 +71,10 @@ export default function App() {
   };
 
   const baseModules = [
-    { id: "mensa", label: "Mensa", icon: "", path: "/mensa" },
-    { id: "news",  label: "News",  icon: "", path: "/news"  },
+    { id: "mensa",      label: "Mensa",      icon: "", path: "/mensa"      },
+    { id: "news",       label: "News",       icon: "", path: "/news"       },
+    { id: "raumfinder", label: "Raumfinder", icon: "", path: "/raumfinder" },
+    { id: "kontakt",    label: "Kontakte",   icon: "", path: "/kontakt"    },
   ];
 
   const allModules = [...baseModules, ...extraModules];
@@ -80,7 +82,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="app-shell">
-        <Sidebar modules={allModules} />
+        <Navbar modules={allModules} />
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard modules={allModules} loaded={modulesLoaded} onRemove={removeModule} />} />
