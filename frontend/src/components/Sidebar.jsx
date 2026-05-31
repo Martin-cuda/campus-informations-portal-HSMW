@@ -107,7 +107,7 @@ export default function Sidebar({ modules }) {
 
         {username ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <div style={{ fontSize: "13px", opacity: 0.8 }}>
+            <div style={{ fontSize: "14px", opacity: 1.0, color: "#FFFFFF"}}>
               👤 Angemeldet als: <b>{username}</b>
             </div>
 
