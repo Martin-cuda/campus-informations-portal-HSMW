@@ -3,9 +3,16 @@
 // Admin-Button und Modul-hinzufügen-Button.
 // ──────────────────────────────────────────────────────────────────────────
 
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useLocation } from "react-router-dom";
 
 export default function Navbar({ modules }) {
+  // ── ARI: Admin-Dashboard-Link nur zeigen, wenn eingeloggt (Token vorhanden).
+  //         useLocation() sorgt dafuer, dass nach Login/Logout neu ausgewertet wird,
+  //         damit der Link sofort auftaucht bzw. wieder verschwindet.
+  useLocation();
+  let istEingeloggt = false;
+  try { istEingeloggt = !!sessionStorage.getItem("token"); } catch { /* noop */ }
+
   return (
     <nav className="navbar">
       {/* ── Logo-Bereich ─────────────────────────────────────────────── */}
@@ -48,7 +55,19 @@ export default function Navbar({ modules }) {
       {/* ── Rechte Seite: Modul hinzufügen + Admin ───────────────────── */}
       <div className="navbar-right">
         <Link to="/module-add" className="navbar-pill">+ Modul</Link>
-        <Link to="/admin" className="navbar-pill">Admin</Link>
+        {/* ── ARI: eingeloggt → direkt zum Admin-Dashboard, sonst → Login ── */}
+        {istEingeloggt ? (
+          <NavLink
+            to="/admin/dashboard"
+            className={({ isActive }) =>
+              "navbar-pill navbar-pill-admin" + (isActive ? " active" : "")
+            }
+          >
+            Admin-Dashboard
+          </NavLink>
+        ) : (
+          <Link to="/admin" className="navbar-pill">Admin</Link>
+        )}
       </div>
     </nav>
   );

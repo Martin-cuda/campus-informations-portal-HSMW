@@ -60,7 +60,7 @@ export default function AdminLogin() {
         sessionStorage.setItem("token", data.access_token);
         sessionStorage.setItem("token_type", data.token_type);
         setSuccess(true);
-        setTimeout(() => navigate("/"), 1200);
+        setTimeout(() => navigate("/admin/dashboard"), 1200);  // [MERGE: Claude] ARI Ticket 2: direkt ins Admin-Dashboard
         return;
       }
 
@@ -78,7 +78,7 @@ export default function AdminLogin() {
       if (user === DEMO_USER && pass === DEMO_PASS) {
         sessionStorage.setItem("token", "demo-token");
         setSuccess(true);
-        setTimeout(() => navigate("/"), 1200);
+        setTimeout(() => navigate("/admin/dashboard"), 1200);  // [MERGE: Claude] ARI Ticket 2: direkt ins Admin-Dashboard
       } else {
         setError("Backend nicht erreichbar. Demo: admin / hsmw2025");
       }

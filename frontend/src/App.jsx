@@ -22,11 +22,14 @@ import ModuleAdd from "./pages/ModuleAdd";
 import ComingSoon from "./pages/ComingSoon";
 // [MERGE: Claude] Fabian's Raumfinder-Seite hinzugefügt
 import Raumfinder from "./pages/Raumfinder";
+// ── ARI (Ticket 2): Admin Live-Metrics Dashboard ─────────────────────────
+import AdminDashboard from "./pages/AdminDashboard";
 import { fetchExtraModules, persistExtraModule, deleteExtraModule } from "./api/modules";
 import "./index.css";
 
 // [MERGE: Claude] /raumfinder zu STATIC_PATHS hinzugefügt
-const STATIC_PATHS = new Set(["/mensa", "/news", "/kontakt", "/raumfinder"]);
+// [MERGE: Claude] /admin/dashboard zu STATIC_PATHS (ARI Ticket 2)
+const STATIC_PATHS = new Set(["/mensa", "/news", "/kontakt", "/raumfinder", "/admin/dashboard"]);
 
 export default function App() {
   const [extraModules, setExtraModules] = useState([]);
@@ -95,6 +98,8 @@ export default function App() {
             <Route path="/module-add"    element={<ModuleAdd onAdd={addModule} existing={allModules} />} />
             {/* [MERGE: Claude] Fabian's Raumfinder-Route ─────────────── */}
             <Route path="/raumfinder"    element={<Raumfinder />} />
+            {/* ── ARI (Ticket 2): Admin-Dashboard ───────────────────── */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
             {extraModules
               .filter((mod) => !STATIC_PATHS.has(mod.path))

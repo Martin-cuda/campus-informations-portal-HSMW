@@ -13,3 +13,9 @@ python-jose[cryptography]>=3.3.0  # JWT-Tokens
 passlib>=1.7.4 #Cryptographie
 bcrypt==4.1.2
 sendgrid>=6.12.5
+
+# ── ARI: Ticket 3 – Pydantic EmailStr braucht email-validator
+email-validator>=2.1
+
+# ── ARI: Ticket 3 – APScheduler fuer taegliche Mensa-Mails (Hintergrund-Thread)
+apscheduler>=3.10

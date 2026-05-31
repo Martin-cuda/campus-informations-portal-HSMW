@@ -10,6 +10,8 @@ import { useEffect, useMemo, useState } from "react";
 
 // Link für Sprung zur Legenden-Seite
 import { Link } from "react-router-dom";
+// ── ARI (Ticket 3): Notification-Formular fuer Lieblingsgericht-Mail ──
+import MensaNotifyForm from "../components/MensaNotifyForm";
 
 // Basis-URL des Backend-Servers (Dev-Umgebung).
 // In der Produktion müsste das später eine Umgebungsvariable werden.
@@ -264,6 +266,10 @@ export default function Mensa() {
           ))}
         </>
       )}
-    </div>
+    
+      {/* ── ARI (Ticket 3): Mensa-Notification (Lieblingsgericht-Mail) ── */}
+      <MensaNotifyForm />
+
+      </div>
   );
 }

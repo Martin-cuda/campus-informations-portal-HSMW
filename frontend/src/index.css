@@ -995,3 +995,145 @@ body {
 .fade-up:nth-child(4) { animation-delay: 0.15s; }
 .fade-up:nth-child(5) { animation-delay: 0.20s; }
 .fade-up:nth-child(6) { animation-delay: 0.25s; }
+
+
+/* ===== [MERGE: Claude] ARI – Admin-Dashboard + Mensa-Notify Styles ===== */
+/* ── ARI (Ticket 2): Admin-Dashboard ─ Live-Metrics ────────────────── */
+/* ──────────────────────────────────────────────────────────────────── */
+
+.metric-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+.metric-card-label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.metric-card-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.metric-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.metric-table th,
+.metric-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.metric-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.metric-table tr:hover td { background: #f8fafc; }
+
+.metric-table code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ──────────────────────────────────────────────────────────────────── */
+/* ── ARI (Ticket 3): Mensa-Notification-Form ───────────────────────── */
+/* ──────────────────────────────────────────────────────────────────── */
+
+.mensa-notify-card {
+  border-left: 4px solid #2596be;
+}
+
+.mensa-notify-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mensa-notify-form .login-input {
+  flex: 1 1 220px;
+  margin-bottom: 0 !important;
+}
+
+.notify-msg {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.notify-msg-ok {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.notify-msg-err {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+
+
+/* ── ARI: Admin-Dashboard-Pill in der Navbar (nur sichtbar wenn eingeloggt) ── */
+/* Erbt Groesse/Form von .navbar-pill, hebt sich aber in der Markenfarbe ab,    */
+/* damit klar ist: hier geht's in den geschuetzten Admin-Bereich.               */
+.navbar-pill-admin {
+  background: #2596be;
+  color: #ffffff;
+  font-weight: 600;
+}
+.navbar-pill-admin:hover {
+  background: #1e7fa3;
+  color: #ffffff;
+}
+.navbar-pill-admin.active {
+  background: #1e7fa3;
+  color: #ffffff;
+}
