@@ -22,5 +22,41 @@
     "banner": "",
     "sections": [],
     "links": []
+  },
+  {
+    "id": "bibliothek",
+    "label": "Bibliothek",
+    "icon": "",
+    "path": "/bibliothek",
+    "tag": "Neu",
+    "description": "Bibliotheks-Zugang, Ausleihen und Öffnungszeiten.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": []
+  },
+  {
+    "id": "events",
+    "label": "Events",
+    "icon": "",
+    "path": "/events",
+    "tag": "Neu",
+    "description": "Aktuelle Veranstaltungen, Partys und Hochschul-Events.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": []
+  },
+  {
+    "id": "prüfungen",
+    "label": "Prüfungen",
+    "icon": "",
+    "path": "/pruefungen",
+    "tag": "Neu",
+    "description": "Prüfungsanmeldung, Termine und Notenübersicht.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": []
   }
 ]
