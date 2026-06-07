@@ -193,66 +193,6 @@ export default function Dashboard({ modules, onRemove }) {
           </Link>
         </div>
       </div>
-      <div className="card fade-up">
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#0f172a" }}>Aktive Module</div>
-          <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>
-            Klicke ein Modul um es zu öffnen · "+" um eines hinzuzufügen
-          </div>
-        </div>
-        <div className="card-grid">
-          {/* Eine Kachel pro Modul */}
-          {modules.map((mod) => {
-            const removable = !CORE_IDS.has(mod.id);  // Mensa/News kann nicht weg
-            const editable  = isEditable(mod);         // nur custom-* sind editierbar
-            return (
-              // Die ganze Kachel ist ein <Link>, also Klick = Modul öffnen
-              <Link
-                to={mod.path}
-                key={mod.id}
-                className="status-card module-tile fade-up"
-                style={{ textDecoration: "none", position: "relative" }}
-              >
-                {/* Stift-Button oben rechts (etwas weiter nach links versetzt
-                    damit X und Stift nebeneinander sitzen) */}
-                {editable && (
-                  <button
-                    type="button"
-                    className="module-tile-edit"
-                    onClick={(e) => handleEdit(e, mod)}
-                    title={`${mod.label} bearbeiten`}
-                    aria-label={`${mod.label} bearbeiten`}
-                  >
-                    ✎
-                  </button>
-                )}
-                {/* X-Button oben rechts – erscheint nur beim Hover */}
-                {removable && (
-                  <button
-                    type="button"
-                    className="module-tile-remove"
-                    onClick={(e) => handleRemove(e, mod)}
-                    title={`${mod.label} entfernen`}
-                    aria-label={`${mod.label} entfernen`}
-                  >
-                    ×
-                  </button>
-                )}
-                {/* Eigentlicher Karten-Inhalt: Icon + Label */}
-                <div className="status-card-icon">{mod.icon}</div>
-                <div className="status-card-label">Modul</div>
-                <div className="status-card-value" style={{ fontSize: 16 }}>{mod.label}</div>
-              </Link>
-            );
-          })}
-
-          {/* "+"-Kachel am Ende des Rasters → Modul hinzufügen */}
-          <Link to="/module-add" className="add-module-card">
-            <div className="add-module-plus">+</div>
-            <div className="add-module-label">Modul hinzufügen</div>
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }
