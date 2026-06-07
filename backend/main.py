@@ -52,7 +52,7 @@ def startup():
 app.add_middleware(
     CORSMiddleware,
     # [MERGE: Claude] :5174 als Fallback ergänzt (Vite wählt manchmal Alternativ-Port)
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "https://bttrhsmw-b3b60.web.app", "https://bttrhsmw-b3b60.firebaseapp.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

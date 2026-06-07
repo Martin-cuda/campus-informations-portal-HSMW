@@ -12,8 +12,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 // Basis-URL des Backend-Servers (Dev-Umgebung).
-// In der Produktion müsste das später eine Umgebungsvariable werden.
-const API = "http://localhost:8000";
+// In der Produktion müsste das später eine Umgebungsvariable werden. wurde es soebene getan
+const API = "";
 
 /**
  * Mensa-Seite

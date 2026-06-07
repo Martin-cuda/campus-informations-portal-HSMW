@@ -15,7 +15,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 
 // Basis-URL des Backend-Servers (Dev). In Produktion → Umgebungsvariable.
-const API = "http://localhost:8000";
+const API = "";
 
 /**
  * Lädt alle aktivierten Extra-Module vom Backend.

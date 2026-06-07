@@ -15,7 +15,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API = "http://localhost:8000";
+const API = "";
 
 // [MERGE: Claude] Demo-Fallback Credentials (Ari's Original) – werden nur
 // benutzt wenn der Backend-Server nicht erreichbar ist.
@@ -48,11 +48,11 @@ export default function AdminLogin() {
 
     try {
       // ── JEROME: POST /login mit Query-Parametern (Jerome's API-Format) ──
-      const url = new URL(`${API}/login`);
-      url.searchParams.set("name", user);
-      url.searchParams.set("password", pass);
+      const params = new URLSearchParams();
+      params.set("name", user);
+      params.set("password", pass);
 
-      const r = await fetch(url.toString(), { method: "POST" });
+      const r = await fetch(`${API}/login?${params.toString()}`, { method: "POST" });
 
       if (r.ok) {
         // ── JEROME: JWT-Token aus Antwort speichern ──────────────────────
@@ -97,7 +97,7 @@ const handleForgotPassword = async () => {
   setRecoveryMsg("");
 
   try {
-    const res = await fetch("http://127.0.0.1:8000/auth/forgot-password", {
+    const res = await fetch(`${API}/auth/forgot-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

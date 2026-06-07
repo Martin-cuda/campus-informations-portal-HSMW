@@ -15,7 +15,7 @@
 
 import { useState, useEffect } from "react";
 
-const API_URL = "http://localhost:8000"; // Backend-URL für Raumbelegungs-API
+const API_URL = "";
 
 // Sortiert Räume nach Etage (KG → EG → 1.OG → 2.OG ...) und dann nach Raumnummer
 const etagenReihenfolge = { "KG": 0, "EG": 1, "1. OG": 2, "2. OG": 3, "3. OG": 4, "4. OG": 5 };

@@ -1,0 +1,26 @@
+http://localhost:8080 {
+    encode gzip zstd
+
+    root * ./frontend/dist
+
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    handle /auth/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    handle /login {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    handle /protected {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    handle {
+        try_files {path} /index.html
+        file_server
+    }
+}

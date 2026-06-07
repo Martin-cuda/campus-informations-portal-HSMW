@@ -12,7 +12,7 @@
 
 // Basis-URL des Backend-Servers (Dev). Für Produktion müsste das eine
 // Umgebungsvariable werden, fürs Studi-Setup ist localhost ok.
-const API = "http://localhost:8000";
+const API = "";
 
 /**
  * Holt die Liste der Kontakte vom Backend.
@@ -21,12 +21,11 @@ const API = "http://localhost:8000";
  * @returns {Promise<{count: number, contacts: Array}>}
  */
 export async function fetchContacts(query = "") {
-  // URL-Klasse benutzen damit der Suchparameter sicher escaped wird
-  // (Sonderzeichen, Leerzeichen, deutsche Umlaute etc.).
-  const url = new URL(`${API}/api/contacts/`);
-  if (query) url.searchParams.set("q", query);
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
 
-  const r = await fetch(url.toString());
+  const r = await fetch(`${API}/api/contacts/${suffix}`);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
   const data = await r.json();
