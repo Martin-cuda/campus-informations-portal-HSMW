@@ -9,7 +9,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Mensa from "./pages/Mensa";
@@ -29,8 +29,34 @@ import "./index.css";
 const STATIC_PATHS = new Set(["/mensa", "/news", "/kontakt", "/raumfinder"]);
 
 export default function App() {
+  return (
+    <BrowserRouter>
+      <AppInner />
+    </BrowserRouter>
+  );
+}
+
+function AppInner() {
   const [extraModules, setExtraModules] = useState([]);
   const [modulesLoaded, setLoaded]      = useState(false);
+  const [isAdmin, setIsAdmin]           = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
+  const location = useLocation();
+
+  // Theme bei jeder Änderung auf <html> setzen und in localStorage speichern
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  };
+
+  // Admin-Status bei jedem Routenwechsel neu prüfen (z.B. nach Login-Redirect)
+  useEffect(() => {
+    setIsAdmin(!!sessionStorage.getItem("token"));
+  }, [location.pathname]);
 
   useEffect(() => {
     let abgebrochen = false;
@@ -44,7 +70,7 @@ export default function App() {
       });
     return () => { abgebrochen = true; };
   }, []);
-
+ 
   const addModule = async (mod) => {
     setExtraModules((prev) =>
       prev.some((m) => m.id === mod.id) ? prev : [...prev, mod]
@@ -80,9 +106,8 @@ export default function App() {
   const allModules = [...baseModules, ...extraModules];
 
   return (
-    <BrowserRouter>
       <div className="app-shell">
-        <Navbar modules={allModules} />
+        <Navbar modules={allModules} isAdmin={isAdmin} theme={theme} onToggleTheme={toggleTheme} />
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard modules={allModules} loaded={modulesLoaded} onRemove={removeModule} />} />
@@ -105,6 +130,5 @@ export default function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
   );
 }
