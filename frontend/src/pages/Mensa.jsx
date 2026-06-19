@@ -10,6 +10,8 @@ import { useEffect, useMemo, useState } from "react";
 
 // Link für Sprung zur Legenden-Seite
 import { Link } from "react-router-dom";
+// [MERGE] Aris Mensa-Benachrichtigung
+import MensaNotifyForm from "../components/MensaNotifyForm";
 
 // Basis-URL des Backend-Servers (Dev-Umgebung).
 // In der Produktion müsste das später eine Umgebungsvariable werden. wurde es soebene getan
@@ -264,6 +266,8 @@ export default function Mensa() {
           ))}
         </>
       )}
+      {/* [MERGE] Aris Mensa-Benachrichtigung */}
+      <MensaNotifyForm />
     </div>
   );
 }

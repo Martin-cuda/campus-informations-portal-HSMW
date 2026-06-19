@@ -9,7 +9,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Mensa from "./pages/Mensa";
@@ -22,7 +22,9 @@ import ModuleAdd from "./pages/ModuleAdd";
 import ComingSoon from "./pages/ComingSoon";
 // [MERGE: Claude] Fabian's Raumfinder-Seite hinzugefügt
 import Raumfinder from "./pages/Raumfinder";
-import { fetchExtraModules, persistExtraModule, deleteExtraModule } from "./api/modules";
+// [MERGE] Aris Admin-Dashboard
+import AdminDashboard from "./pages/AdminDashboard";
+import { fetchExtraModules, persistExtraModule, deleteExtraModule, reorderExtraModules } from "./api/modules";
 import "./index.css";
 
 // [MERGE: Claude] /raumfinder zu STATIC_PATHS hinzugefügt
@@ -36,12 +38,33 @@ export default function App() {
   );
 }
 
+// [MERGE] Token gültig? (vorhanden UND nicht abgelaufen). Demo-Token zählt als gültig.
+function tokenGueltig() {
+  let t = null;
+  try { t = sessionStorage.getItem("token"); } catch { return false; }
+  if (!t) return false;
+  if (t === "demo-token") return true;
+  try {
+    const teil = t.split(".")[1];
+    if (!teil) return true;
+    const payload = JSON.parse(atob(teil.replace(/-/g, "+").replace(/_/g, "/")));
+    if (payload.exp && payload.exp * 1000 <= Date.now()) return false;
+    return true;
+  } catch { return true; }
+}
+
+// [MERGE] Schützt Routen: ohne gültigen Token → weiter zum Login.
+function RequireAdmin({ children }) {
+  return tokenGueltig() ? children : <Navigate to="/admin" replace />;
+}
+
 function AppInner() {
   const [extraModules, setExtraModules] = useState([]);
   const [modulesLoaded, setLoaded]      = useState(false);
   const [isAdmin, setIsAdmin]           = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Theme bei jeder Änderung auf <html> setzen und in localStorage speichern
   useEffect(() => {
@@ -53,10 +76,28 @@ function AppInner() {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
-  // Admin-Status bei jedem Routenwechsel neu prüfen (z.B. nach Login-Redirect)
+  // Admin-Status prüfen (Token vorhanden & nicht abgelaufen). Abgelaufenen Token
+  // entfernen, damit die Admin-Buttons verschwinden statt zum Login zu leiten.
   useEffect(() => {
-    setIsAdmin(!!sessionStorage.getItem("token"));
+    const pruefe = () => {
+      const ok = tokenGueltig();
+      if (!ok) {
+        try { sessionStorage.removeItem("token"); sessionStorage.removeItem("token_type"); } catch { /* noop */ }
+      }
+      setIsAdmin(ok);
+    };
+    pruefe();
+    const iv = setInterval(pruefe, 30000);        // regelmäßig nachprüfen
+    window.addEventListener("focus", pruefe);     // beim Zurückwechseln zum Tab
+    return () => { clearInterval(iv); window.removeEventListener("focus", pruefe); };
   }, [location.pathname]);
+
+  // [MERGE] Logout: Token löschen, Admin-Status zurücksetzen, zur Startseite.
+  const handleLogout = () => {
+    try { sessionStorage.removeItem("token"); sessionStorage.removeItem("token_type"); } catch { /* noop */ }
+    setIsAdmin(false);
+    navigate("/");
+  };
 
   useEffect(() => {
     let abgebrochen = false;
@@ -71,20 +112,37 @@ function AppInner() {
     return () => { abgebrochen = true; };
   }, []);
  
+  // Modul hinzufügen ODER ein archiviertes wieder aktivieren (active:true)
   const addModule = async (mod) => {
-    setExtraModules((prev) =>
-      prev.some((m) => m.id === mod.id) ? prev : [...prev, mod]
-    );
+    const aktiv = { ...mod, active: mod.active !== false };  // neu erstellte Module können inaktiv sein
+    setExtraModules((prev) => [...prev.filter((m) => m.id !== aktiv.id), aktiv]);
     try {
-      await persistExtraModule(mod);
+      await persistExtraModule(aktiv);
     } catch (err) {
       console.error("Modul konnte nicht gespeichert werden:", err);
-      setExtraModules((prev) => prev.filter((m) => m.id !== mod.id));
       alert("Speichern fehlgeschlagen – läuft das Backend?");
     }
   };
 
+  // [MERGE] Entfernen = ARCHIVIEREN (active:false). Inhalt bleibt erhalten,
+  // Modul verschwindet aus Navigation/Startseite, taucht unten zum Reaktivieren auf.
   const removeModule = async (id) => {
+    const sicherung = extraModules;
+    const ziel = extraModules.find((m) => m.id === id);
+    if (!ziel) return;
+    const archiviert = { ...ziel, active: false };
+    setExtraModules((prev) => prev.map((m) => (m.id === id ? archiviert : m)));
+    try {
+      await persistExtraModule(archiviert);
+    } catch (err) {
+      console.error("Modul konnte nicht archiviert werden:", err);
+      setExtraModules(sicherung);
+      alert("Entfernen fehlgeschlagen – läuft das Backend?");
+    }
+  };
+
+  // [MERGE] Endgültig löschen (aus dem Archiv unten) – entfernt das Modul ganz.
+  const deleteModule = async (id) => {
     const sicherung = extraModules;
     setExtraModules((prev) => prev.filter((m) => m.id !== id));
     try {
@@ -96,18 +154,24 @@ function AppInner() {
     }
   };
 
-  const baseModules = [
-    { id: "mensa",      label: "Mensa",      icon: "", path: "/mensa"      },
-    { id: "news",       label: "News",       icon: "", path: "/news"       },
-    { id: "raumfinder", label: "Raumfinder", icon: "", path: "/raumfinder" },
-    { id: "kontakt",    label: "Kontakte",   icon: "", path: "/kontakt"    },
-  ];
+  // ── ARI: Reihenfolge der Zusatz-Module ändern (Admin) ──
+  const reorderModules = async (ids) => {
+    try {
+      const res = await reorderExtraModules(ids);
+      if (res && Array.isArray(res.modules)) setExtraModules(res.modules);
+    } catch (err) {
+      console.error("Sortieren fehlgeschlagen:", err);
+      alert("Sortieren fehlgeschlagen – läuft das Backend?");
+    }
+  };
 
-  const allModules = [...baseModules, ...extraModules];
+  // [MERGE] Aktive Module (Navigation/Startseite/Verwaltung) vs. archivierte
+  const allModules = extraModules.filter((m) => m.active !== false);
+  const archivedModules = extraModules.filter((m) => m.active === false);
 
   return (
       <div className="app-shell">
-        <Navbar modules={allModules} isAdmin={isAdmin} theme={theme} onToggleTheme={toggleTheme} />
+        <Navbar modules={allModules} isAdmin={isAdmin} theme={theme} onToggleTheme={toggleTheme} onLogout={handleLogout} />
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard modules={allModules} loaded={modulesLoaded} onRemove={removeModule} />} />
@@ -117,9 +181,11 @@ function AppInner() {
             <Route path="/kontakt"                element={<Kontakte />} />
             <Route path="/kontakt/:nutzerkuerzel" element={<KontaktDetail />} />
             <Route path="/admin"         element={<AdminLogin />} />
-            <Route path="/module-add"    element={<ModuleAdd onAdd={addModule} existing={allModules} />} />
+            <Route path="/module-add"    element={<RequireAdmin><ModuleAdd onAdd={addModule} onRemove={removeModule} onReorder={reorderModules} existing={allModules} manageItems={allModules} archived={archivedModules} onDelete={deleteModule} /></RequireAdmin>} />
             {/* [MERGE: Claude] Fabian's Raumfinder-Route ─────────────── */}
             <Route path="/raumfinder"    element={<Raumfinder />} />
+            {/* [MERGE] Aris Admin-Dashboard-Route */}
+            <Route path="/admin/dashboard" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
 
             {extraModules
               .filter((mod) => !STATIC_PATHS.has(mod.path))

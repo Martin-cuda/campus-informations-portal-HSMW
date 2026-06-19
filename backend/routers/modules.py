@@ -21,7 +21,8 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from admin_guard import require_admin  # [MERGE] Schreibzugriffe nur für Admins
 from pydantic import BaseModel, Field
 
 
@@ -65,6 +66,7 @@ class Module(BaseModel):
     banner: Optional[str] = ""
     sections: List[ModuleSection] = []
     links: List[ModuleLink] = []
+    active: Optional[bool] = True  # [MERGE] False = archiviert (bleibt gespeichert, nicht in Navigation)
 
 
 def _load() -> List[dict]:
@@ -96,7 +98,7 @@ def list_modules():
 
 
 @router.post("/")
-def upsert_module(mod: Module):
+def upsert_module(mod: Module, _admin = Depends(require_admin)):
     """
     POST /api/modules – fügt Modul hinzu.
     Wenn die id schon existiert, wird das bestehende Modul ersetzt (Upsert-Verhalten).
@@ -112,7 +114,7 @@ def upsert_module(mod: Module):
 
 
 @router.delete("/{module_id}")
-def delete_module(module_id: str):
+def delete_module(module_id: str, _admin = Depends(require_admin)):
     """DELETE /api/modules/{id} – entfernt das Modul mit dieser id."""
     modules = _load()
     # Liste ohne das zu löschende Element neu aufbauen
@@ -122,3 +124,18 @@ def delete_module(module_id: str):
         raise HTTPException(status_code=404, detail=f"Modul '{module_id}' nicht gefunden.")
     _save(neue)
     return {"deleted": module_id}
+
+
+# ── [MERGE] Reihenfolge der Module ändern (Admin: Verschieben) ────────────
+class _OrderIn(BaseModel):
+    ids: List[str]
+
+
+@router.put("/order")
+def reorder_modules(payload: _OrderIn, _admin = Depends(require_admin)):
+    """Sortiert die gespeicherten Module nach der übergebenen ID-Reihenfolge."""
+    mods = _load()
+    pos = {mid: i for i, mid in enumerate(payload.ids)}
+    mods.sort(key=lambda m: pos.get(m.get("id"), 10**9))
+    _save(mods)
+    return {"ok": True, "modules": mods}

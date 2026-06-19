@@ -17,6 +17,16 @@
 // Basis-URL des Backend-Servers (Dev). In Produktion → Umgebungsvariable.
 const API = "";
 
+// [MERGE] Hängt den Admin-Token (falls vorhanden) als Bearer-Header an.
+function authHeaders(extra = {}) {
+  const h = { ...extra };
+  try {
+    const t = sessionStorage.getItem("token");
+    if (t) h["Authorization"] = "Bearer " + t;
+  } catch { /* noop */ }
+  return h;
+}
+
 /**
  * Lädt alle aktivierten Extra-Module vom Backend.
  * Wirft, wenn das Backend nicht erreichbar ist – wird in App.jsx gefangen
@@ -41,8 +51,7 @@ export async function fetchExtraModules() {
 export async function persistExtraModule(mod) {
   const r = await fetch(`${API}/api/modules/`, {
     method: "POST",
-    // Header damit FastAPI weiß: das ist JSON, kein Form-Body
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(mod),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -56,7 +65,19 @@ export async function persistExtraModule(mod) {
 export async function deleteExtraModule(id) {
   const r = await fetch(`${API}/api/modules/${encodeURIComponent(id)}`, {
     method: "DELETE",
+    headers: authHeaders(),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return await r.json();
+}
+
+// [MERGE] Reihenfolge der Zusatz-Module speichern (Admin: Verschieben).
+export async function reorderExtraModules(ids) {
+  const r = await fetch(`${API}/api/modules/order`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ ids }),
+  });
+  if (!r.ok) throw new Error("REORDER");
+  return r.json();
 }

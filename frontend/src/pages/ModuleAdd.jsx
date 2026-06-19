@@ -17,18 +17,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 // Vorgefertigte Module die per Klick ohne Formular aktiviert werden können.
 // Jeder Eintrag entspricht später einem Modul-Objekt im Backend.
 const AVAILABLE_MODULES = [
-  { id: "stundenplan", label: "Stundenplan", icon: "", path: "/stundenplan", tag: "Neu",
-    description: "Persönlicher Stundenplan deiner Vorlesungen, Seminare und Praktika." },
-  { id: "raumfinder",  label: "Raumfinder",  icon: "", path: "/raumfinder",  tag: "Neu",
+  { id: "mensa",      label: "Mensa",      icon: "", path: "/mensa",      tag: "",
+    description: "Speiseplan der HSMW-Mensa." },
+  { id: "news",       label: "News",       icon: "", path: "/news",       tag: "",
+    description: "Aktuelle Meldungen rund um die Hochschule." },
+  { id: "raumfinder", label: "Raumfinder", icon: "", path: "/raumfinder", tag: "",
     description: "Übersicht aller Räume und Hörsäle auf dem Campus inkl. Belegung." },
-  { id: "events",      label: "Events",      icon: "", path: "/events",      tag: "Neu",
-    description: "Aktuelle Veranstaltungen, Partys und Hochschul-Events." },
-  { id: "bibliothek",  label: "Bibliothek",  icon: "", path: "/bibliothek",  tag: "Neu",
-    description: "Bibliotheks-Zugang, Ausleihen und Öffnungszeiten." },
-  { id: "kontakt",     label: "Kontakt",     icon: "", path: "/kontakt",     tag: "Neu",
+  { id: "kontakt",    label: "Kontakte",   icon: "", path: "/kontakt",    tag: "",
     description: "Mitarbeiter-Verzeichnis der HSMW mit Suche, Foto, E-Mail und Durchwahl." },
-  { id: "prüfungen",   label: "Prüfungen",   icon: "", path: "/pruefungen",  tag: "Neu",
-    description: "Prüfungsanmeldung, Termine und Notenübersicht." },
 ];
 
 // Auswahl an Akzentfarben fürs eigene Modul. Werden als runde Swatch-Buttons
@@ -59,7 +55,7 @@ function slugify(text) {
 // Hauptkomponente
 // onAdd      = wird mit dem fertigen Modul-Objekt aufgerufen, persistiert es im Backend
 // existing   = aktuelle Liste der schon aktiven Module (für Duplikat-Check)
-export default function ModuleAdd({ onAdd, existing }) {
+export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manageItems = [], archived = [], onDelete }) {
   // Welche der vorgefertigten Modul-Kacheln gerade markiert ist
   const [selected, setSelected] = useState(null);
   // Ob das Inline-Formular für eigenes Modul gerade ausgeklappt ist
@@ -79,6 +75,7 @@ export default function ModuleAdd({ onAdd, existing }) {
 
   // Fehlertext der über dem Submit-Button angezeigt wird
   const [formError, setFormError]   = useState("");
+  const [formOk, setFormOk]         = useState(""); // [MERGE] Erfolgsmeldung
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,6 +84,22 @@ export default function ModuleAdd({ onAdd, existing }) {
   // im Bearbeiten-Modus. Dann werden id und path nicht aus dem Namen abgeleitet,
   // sondern bleiben stabil (siehe handleCreateCustom unten).
   const editingModule = location.state?.editingModule || null;
+  // [MERGE] Bearbeiten kann auch direkt hier aus der Liste gestartet werden (nicht nur per Router-State)
+  const [editing, setEditing] = useState(editingModule);
+  const startEdit = (mod) => {
+    setFormOk("");
+    setEditing(mod);
+    setSelected(null);
+    setShowForm(true);
+    setCustomName(mod.label || "");
+    setCustomIcon(mod.icon || "");
+    setCustomDesc(mod.description || "");
+    setColor(mod.color || FARB_OPTIONEN[0].value);
+    setBanner(mod.banner || "");
+    setSections(mod.sections?.length ? mod.sections : [{ title: "", body: "" }]);
+    setLinks(mod.links?.length ? mod.links : [{ label: "", url: "" }]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Beim Mount das Formular vorfüllen wenn wir im Edit-Modus sind.
   // Die Dependencies-Liste ist mit Absicht leer: location.state nur einmal
@@ -126,15 +139,13 @@ export default function ModuleAdd({ onAdd, existing }) {
     setSelected(null);
     setShowForm(true);
     setFormError("");
+    setFormOk("");
   };
 
   // "Abbrechen" im Formular: im Edit-Modus zurück zum Dashboard,
   // im Erstell-Modus nur das Formular zuklappen
   const closeForm = () => {
-    if (editingModule) {
-      navigate("/");
-      return;
-    }
+    setEditing(null);
     setShowForm(false);
     setFormError("");
   };
@@ -154,7 +165,7 @@ export default function ModuleAdd({ onAdd, existing }) {
   // Klick auf "Modul aktivieren" für eines der vorgefertigten Module
   const handleAdd = () => {
     if (!selected) return;
-    onAdd(selected);
+    onAdd({ ...selected, active: true });   // ausgewähltes/archiviertes Modul aktivieren
     navigate("/");
   };
 
@@ -169,9 +180,9 @@ export default function ModuleAdd({ onAdd, existing }) {
     // ID und Pfad bestimmen: im Edit-Modus aus dem alten Modul übernehmen,
     // sonst aus dem Namen einen Slug bauen.
     let id, path;
-    if (editingModule) {
-      id   = editingModule.id;
-      path = editingModule.path;
+    if (editing) {
+      id   = editing.id;
+      path = editing.path;
     } else {
       const slug = slugify(name);
       if (!slug) {
@@ -191,10 +202,11 @@ export default function ModuleAdd({ onAdd, existing }) {
     const cleanLinks    = links.filter((l) => l.url.trim() && l.label.trim());
 
     // Fertiges Modul-Objekt an App.jsx weitergeben (das ruft persistExtraModule)
+    const istEdit = !!editing;
     onAdd({
       id,
       label: name,
-      icon: customIcon.trim() || "",  // Fallback-Emoji falls leer
+      icon: customIcon.trim() || "",
       path,
       tag: "Eigenes Modul",
       description: customDesc.trim(),
@@ -202,27 +214,85 @@ export default function ModuleAdd({ onAdd, existing }) {
       banner: customBanner.trim(),
       sections: cleanSections,
       links: cleanLinks,
+      // [MERGE] Neu erstellte Module bleiben INAKTIV (landen unten, kein Auto-Freischalten).
+      // Beim Bearbeiten den bisherigen Status behalten.
+      active: istEdit ? (editing.active !== false) : false,
     });
-    navigate("/");
+    // [MERGE] Auf der Seite bleiben statt zum Dashboard zu springen.
+    setEditing(null);
+    setShowForm(false);
+    setSelected(null);
+    setCustomName(""); setCustomIcon(""); setCustomDesc("");
+    setColor(FARB_OPTIONEN[0].value); setBanner("");
+    setSections([{ title: "", body: "" }]); setLinks([{ label: "", url: "" }]);
+    setFormError("");
+    setFormOk(istEdit
+      ? `"${name}" wurde gespeichert.`
+      : `"${name}" wurde erstellt und liegt unten bereit – zum Aktivieren anklicken.`);
   };
 
   // True wenn wir aktuell ein bestehendes Modul bearbeiten
-  const istEditMode = !!editingModule;
+  const istEditMode = !!editing;
+
+  // ── [MERGE] Admin: Modul in der Reihenfolge verschieben ──
+  const moveItem = (index, dir) => {
+    if (!onReorder) return;
+    const ids = manageItems.map((m) => m.id);
+    const j = index + dir;
+    if (j < 0 || j >= ids.length) return;
+    [ids[index], ids[j]] = [ids[j], ids[index]];
+    onReorder(ids);
+  };
 
   return (
     <div>
       {/* Header oben passt sich an Modus an */}
       <div className="page-header fade-up">
         <div className="page-title">
-          {istEditMode ? "Modul bearbeiten" : "Modul hinzufügen"}
+          {istEditMode ? "Modul bearbeiten" : "Module verwalten"}
         </div>
         <div className="page-subtitle">
           {istEditMode
-            ? `Du bearbeitest "${editingModule.label}" – Änderungen wirken für alle User`
-            : "Wähle ein vorgefertigtes Modul oder leg dein eigenes an"}
+            ? `Du bearbeitest "${editing.label}" – Änderungen wirken für alle User`
+            : "Module sortieren, entfernen oder ein neues hinzufügen"}
         </div>
       </div>
 
+      {formOk && (
+        <div className="card fade-up" style={{ marginBottom: 16, borderLeft: "4px solid #22c55e", color: "var(--text-primary)" }}>
+          {formOk}
+        </div>
+      )}
+      {/* ── [MERGE] Admin: aktive Module verwalten (sortieren/entfernen) ── */}
+      {manageItems.length > 0 && (onReorder || onRemove) && (
+        <div className="card fade-up" style={{ marginBottom: 16 }}>
+          <h2 className="page-title" style={{ marginTop: 0, fontSize: "1.15rem" }}>Aktive Module</h2>
+          <p className="page-subtitle" style={{ marginBottom: 16 }}>
+            Reihenfolge per Pfeil ändern oder Modul entfernen – gilt für Navigation und Startseite.
+          </p>
+          <div className="manage-grid">
+            {manageItems.map((mod, i) => (
+              <div key={mod.id} className="manage-card">
+                <span className="manage-num">{i + 1}</span>
+                <span className="manage-label">{mod.label}</span>
+                <div className="manage-actions">
+                  {String(mod.id).startsWith("custom-") && (
+                    <button type="button" className="manage-btn" onClick={() => startEdit(mod)} title="Bearbeiten" aria-label="Bearbeiten">✎</button>
+                  )}
+                  <button type="button" className="manage-btn" disabled={i === 0}
+                    onClick={() => moveItem(i, -1)} title="Nach oben" aria-label="Nach oben">▲</button>
+                  <button type="button" className="manage-btn" disabled={i === manageItems.length - 1}
+                    onClick={() => moveItem(i, 1)} title="Nach unten" aria-label="Nach unten">▼</button>
+                  {onRemove && (
+                    <button type="button" className="manage-btn manage-btn-danger"
+                      onClick={() => onRemove(mod.id)} title="Entfernen" aria-label="Entfernen">✕</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="card fade-up">
         {/* Auswahlraster nur im Erstellen-Modus zeigen */}
         {!istEditMode && (
@@ -242,6 +312,36 @@ export default function ModuleAdd({ onAdd, existing }) {
                   <div className="module-option-tag">
                     {isExisting ? "Bereits aktiv" : mod.tag}
                   </div>
+                </div>
+              );
+            })}
+
+            {/* [MERGE] Archivierte eigene Module – klick zum Reaktivieren (Inhalt bleibt erhalten) */}
+            {archived.filter((m) => String(m.id).startsWith("custom-")).map((mod) => {
+              const isSelected = selected?.id === mod.id;
+              return (
+                <div
+                  key={mod.id}
+                  className={`module-option ${isSelected ? "selected" : ""}`}
+                  onClick={() => toggle(mod)}
+                  title={`Inaktiv – klick zum Aktivieren${mod.description ? ": " + mod.description : ""}`}
+                >
+                  <div className="module-option-icon">{mod.icon}</div>
+                  <div className="module-option-name">{mod.label}</div>
+                  <div className="module-option-tag">Inaktiv</div>
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`"${mod.label}" endgültig löschen? Inhalt geht verloren.`)) onDelete(mod.id);
+                      }}
+                      title="Endgültig löschen"
+                      style={{ marginTop: 10, fontSize: 12, color: "#ef4444", background: "transparent", border: "1px solid #ef4444", borderRadius: 6, padding: "3px 10px", cursor: "pointer" }}
+                    >
+                      Löschen
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -299,7 +399,7 @@ export default function ModuleAdd({ onAdd, existing }) {
             {/* Hinweis dass URL stabil bleibt – wichtig für User-Vertrauen */}
             {istEditMode && (
               <div style={{ marginTop: -12, marginBottom: 16, fontSize: 11, color: "#94a3b8" }}>
-                URL-Pfad bleibt unverändert: <code>{editingModule.path}</code>
+                URL-Pfad bleibt unverändert: <code>{editing?.path}</code>
               </div>
             )}
 

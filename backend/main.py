@@ -29,6 +29,14 @@ from routers.haeuser import router as haeuser_router
 from routers.login_router import router as login_router
 from recovery import router as recovery_router   
 
+# ── ARI: zusätzliche Features (additiv, ändert Fabians Setup nicht) ──────
+from fastapi.middleware.gzip import GZipMiddleware
+from routers.admin_metrics import router as admin_metrics_router
+from routers.mensa_notify import router as mensa_notify_router
+from middleware.visit_logger import VisitLoggerMiddleware
+from models import VisitLog, MensaSubscription  # noqa: F401  (für create_all)
+from services import mensa_scheduler
+
 # ── JEROME: DB-Startup (aus Jerome's main.py) ────────────────────────────
 # [MERGE: Claude] Hinzugefügt. Erstellt die Admin-Tabelle beim Start falls
 # sie noch nicht vorhanden ist. Kommt 1:1 aus Jerome's main.py.
@@ -46,6 +54,14 @@ app = FastAPI(
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
+    # ── ARI: Mensa-Scheduler starten
+    mensa_scheduler.start()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    # ── ARI: Scheduler sauber beenden
+    mensa_scheduler.stop()
 
 
 # ── ARI: CORS-Middleware ──────────────────────────────────────────────────
@@ -57,6 +73,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── ARI: Performance + Visit-Logging (additiv) ───────────────────────────
+app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(VisitLoggerMiddleware)
 
 # ── ARI: Router einbinden ─────────────────────────────────────────────────
 app.include_router(mensa_router)    # MENSA ROUTER – Ari
@@ -71,6 +91,10 @@ app.include_router(haeuser_router)  # HAEUSER ROUTER – Fabian
 # [MERGE: Claude] Hinzugefügt.
 app.include_router(login_router)    # LOGIN/AUTH ROUTER – Jerome
 app.include_router(recovery_router, prefix="/auth")
+
+# ── ARI: Admin-Metrics + Mensa-Benachrichtigung ─────────────────────────
+app.include_router(admin_metrics_router)  # ADMIN METRICS – Ari
+app.include_router(mensa_notify_router)    # MENSA NOTIFY – Ari
 
 
 # ── ARI: Health-Check Endpoints ───────────────────────────────────────────

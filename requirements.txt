@@ -1,15 +1,18 @@
-# ── ARI: Basis-Dependencies ───────────────────────────────────────────────
-fastapi==0.111.0
-uvicorn[standard]==0.29.0
-httpx==0.27.0
-python-dotenv==1.0.1
-pydantic>=2.0
-
-# ── JEROME: Auth / Datenbank-Dependencies ─────────────────────────────────
 # [MERGE: Claude] Aus Jerome's venv-Inhalt extrahiert.
-sqlalchemy>=2.0
-psycopg2-binary>=2.9    # PostgreSQL-Treiber (psycopg2 ohne Kompilierung)
-python-jose[cryptography]>=3.3.0  # JWT-Tokens
-passlib>=1.7.4 #Cryptographie
+# ── ARI: Basis-Dependencies ───────────────────────────────────────────────
+# ── ARI: Ticket 3 – APScheduler fuer taegliche Mensa-Mails (Hintergrund-Thread)
+# ── ARI: Ticket 3 – Pydantic EmailStr braucht email-validator
+# ── JEROME: Auth / Datenbank-Dependencies ─────────────────────────────────
+apscheduler>=3.10
 bcrypt==4.1.2
+email-validator>=2.1
+fastapi==0.111.0
+httpx==0.27.0
+passlib>=1.7.4 #Cryptographie
+psycopg2-binary>=2.9    # PostgreSQL-Treiber (psycopg2 ohne Kompilierung)
+pydantic>=2.0
+python-dotenv==1.0.1
+python-jose[cryptography]>=3.3.0  # JWT-Tokens
 sendgrid>=6.12.5
+sqlalchemy>=2.0
+uvicorn[standard]==0.29.0

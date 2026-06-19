@@ -1,7 +1,7 @@
 // ── Navbar: Logo + Tab-Leiste in einer Zeile + Theme-Toggle ──
 import { NavLink, Link } from "react-router-dom";
 
-export default function Navbar({ modules, isAdmin, theme, onToggleTheme }) {
+export default function Navbar({ modules, isAdmin, theme, onToggleTheme, onLogout }) {
   return (
     <nav className="navbar-tabs">
       <Link to="/" className="navbar-logo">
@@ -56,8 +56,11 @@ export default function Navbar({ modules, isAdmin, theme, onToggleTheme }) {
 
       {isAdmin && (
         <>
-          <Link to="/module-add" className="navbar-pill">+ Modul</Link>
-          <Link to="/admin" className="navbar-pill">Admin</Link>
+          <Link to="/module-add" className="navbar-pill">Module verwalten</Link>
+          {/* [MERGE] Aris Admin-Dashboard-Link */}
+          <NavLink to="/admin/dashboard" className={({ isActive }) => "navbar-pill navbar-pill-admin" + (isActive ? " active" : "")}>Admin-Dashboard</NavLink>
+          {/* [MERGE] Logout */}
+          <button type="button" className="navbar-pill" onClick={onLogout} title="Abmelden">Logout</button>
         </>
       )}
       {!isAdmin && (
