@@ -1,24 +1,46 @@
-// ── Navbar: Logo + Tab-Leiste in einer Zeile + Theme-Toggle ──
+// ── Navbar: Logo + Tab-Leiste + Theme-Toggle ──
 import { NavLink, Link } from "react-router-dom";
 
-export default function Navbar({ modules, isAdmin, theme, onToggleTheme, onLogout }) {
+export default function Navbar({
+  modules,
+  isAdmin,
+  theme,
+  onToggleTheme,
+  onLogout,
+  username,
+}) {
   return (
     <nav className="navbar-tabs">
+      {/* Logo */}
       <Link to="/" className="navbar-logo">
-        <img src="/hsmw-logo.png" alt="HSMW Logo" style={{ height: "22px", width: "auto" }} />
+        <img
+          src="/hsmw-logo.png"
+          alt="HSMW Logo"
+          style={{ height: "22px", width: "auto" }}
+        />
         <span className="navbar-logo-text">bttrhsmw</span>
       </Link>
 
       <span className="navbar-tabs-divider" />
 
-      <NavLink to="/" end className={({ isActive }) => "navbar-tab" + (isActive ? " active" : "")}>
+      {/* Navigation */}
+      <NavLink
+        to="/"
+        end
+        className={({ isActive }) =>
+          "navbar-tab" + (isActive ? " active" : "")
+        }
+      >
         Startseite
       </NavLink>
+
       {modules.map((mod) => (
         <NavLink
           key={mod.id}
           to={mod.path}
-          className={({ isActive }) => "navbar-tab" + (isActive ? " active" : "")}
+          className={({ isActive }) =>
+            "navbar-tab" + (isActive ? " active" : "")
+          }
         >
           {mod.label}
         </NavLink>
@@ -26,16 +48,20 @@ export default function Navbar({ modules, isAdmin, theme, onToggleTheme, onLogou
 
       <span className="navbar-tabs-spacer" />
 
+      {/* Theme Toggle */}
       <button
         type="button"
         className="theme-toggle"
         onClick={onToggleTheme}
-        title={theme === "dark" ? "Zu Light Mode wechseln" : "Zu Dark Mode wechseln"}
+        title={
+          theme === "dark"
+            ? "Zu Light Mode wechseln"
+            : "Zu Dark Mode wechseln"
+        }
         aria-label="Theme umschalten"
       >
         {theme === "dark" ? (
-          // Sonne-Icon (zeigt an: Klick wechselt zu Light)
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <circle cx="12" cy="12" r="4" />
             <line x1="12" y1="2" x2="12" y2="4" />
             <line x1="12" y1="20" x2="12" y2="22" />
@@ -47,24 +73,47 @@ export default function Navbar({ modules, isAdmin, theme, onToggleTheme, onLogou
             <line x1="17.66" y1="6.34" x2="19.07" y2="4.93" />
           </svg>
         ) : (
-          // Mond-Icon (zeigt an: Klick wechselt zu Dark)
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
           </svg>
         )}
       </button>
 
+      {/* Admin Bereich */}
       {isAdmin && (
         <>
-          <Link to="/module-add" className="navbar-pill">Module verwalten</Link>
-          {/* [MERGE] Aris Admin-Dashboard-Link */}
-          <NavLink to="/admin/dashboard" className={({ isActive }) => "navbar-pill navbar-pill-admin" + (isActive ? " active" : "")}>Admin-Dashboard</NavLink>
-          {/* [MERGE] Logout */}
-          <button type="button" className="navbar-pill" onClick={onLogout} title="Abmelden">Logout</button>
+          <span
+            style={{
+              fontSize: "0.9rem",
+              color: "var(--text-secondary)",
+              marginRight: "0.75rem",
+            }}
+          >
+            Angemeldet als {username || "Admin"}
+          </span>
+
+          <Link to="/module-add" className="navbar-pill">
+            + Modul
+          </Link>
+
+          <Link to="/admin" className="navbar-pill">
+            Admin
+          </Link>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="navbar-pill navbar-pill-ghost"
+          >
+            Logout
+          </button>
         </>
       )}
+
       {!isAdmin && (
-        <Link to="/admin" className="navbar-pill navbar-pill-ghost">Admin</Link>
+        <Link to="/admin" className="navbar-pill navbar-pill-ghost">
+          Admin
+        </Link>
       )}
     </nav>
   );
