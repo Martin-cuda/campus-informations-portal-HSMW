@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DateTime
 from datenbank import Base
 
 #Tabelle für Admins erstellen
@@ -12,3 +12,7 @@ class Admin(Base):
     mail = Column(String)
     permissions = Column(String) #als JSON für Klappleiste
     role = Column(String, default="secondary_admin") #neuer erstellter Admin ist automatisch secondary
+    last_password_reset_request = Column(
+    DateTime,
+    nullable=True
+)
