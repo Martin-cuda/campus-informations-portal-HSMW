@@ -90,6 +90,36 @@ def alle_haeuser(db: Session = Depends(get_db)):
         for h in haeuser
     ]
 
+@router.get("/leicht")
+def alle_haeuser_leicht(db: Session = Depends(get_db)):
+    """
+    GET /api/haeuser/leicht
+    Gibt alle Häuser NUR mit id und name zurück, ohne Räume.
+    Schnell, da keine großen verschachtelten Daten geladen werden.
+    Wird für die Haus-Auswahl-Buttons im Raumfinder genutzt.
+    """
+    haeuser = db.query(HausDB).all()
+    return [{"id": h.id, "name": h.name} for h in haeuser]
+
+@router.get("/{haus_id}/raeume")
+def raeume_eines_hauses(haus_id: str, db: Session = Depends(get_db)):
+    """
+    GET /api/haeuser/{haus_id}/raeume
+    Gibt nur die Räume EINES Hauses zurück (Lazy Loading).
+    Wird aufgerufen, wenn der Nutzer im Raumfinder ein Haus anklickt.
+    """
+    haus = db.query(HausDB).filter(HausDB.id == haus_id).first()
+    if not haus:
+        raise HTTPException(status_code=404, detail="Haus nicht gefunden")
+    return {
+        "id": haus.id,
+        "name": haus.name,
+        "raeume": [
+            { "id": r.id, "name": r.name, "etage": r.etage, "belegt": False, "professor": "", "modul": "", "bis": "" }
+            for r in haus.raeume
+        ]
+    }
+
 @router.post("/")
 def haus_anlegen(haus: HausSchema, db: Session = Depends(get_db)):
     """
