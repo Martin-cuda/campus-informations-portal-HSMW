@@ -38,6 +38,9 @@ const FARB_OPTIONEN = [
   { value: "#0ea5e9", label: "Türkis" },
 ];
 
+// [REDESIGN] Schnellauswahl gängiger Icons – ein Klick statt Emoji suchen.
+const EMOJI_PICKS = ["📅", "📚", "🎓", "🏫", "📝", "⚽", "🎉", "💡", "🗺️", "📰", "✉️", "🔬"];
+
 // Aus einem freien Namen einen URL-tauglichen Slug machen.
 // "Sport-Anmeldung" → "sport-anmeldung", "Café Süd" → "cafe-sued", "ÄÖÜ ß" → "aeoeue-ss"
 function slugify(text) {
@@ -53,6 +56,7 @@ function slugify(text) {
 }
 
 // Hauptkomponente
+// (Custom-Modul-Builder mit Live-Vorschau – Redesign)
 // onAdd      = wird mit dem fertigen Modul-Objekt aufgerufen, persistiert es im Backend
 // existing   = aktuelle Liste der schon aktiven Module (für Duplikat-Check)
 export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manageItems = [], archived = [], onDelete }) {
@@ -76,6 +80,7 @@ export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manage
   // Fehlertext der über dem Submit-Button angezeigt wird
   const [formError, setFormError]   = useState("");
   const [formOk, setFormOk]         = useState(""); // [MERGE] Erfolgsmeldung
+  const [bannerError, setBannerError] = useState(false); // [REDESIGN] Banner-Bild Ladefehler für Vorschau
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -96,6 +101,7 @@ export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manage
     setCustomDesc(mod.description || "");
     setColor(mod.color || FARB_OPTIONEN[0].value);
     setBanner(mod.banner || "");
+    setBannerError(false);
     setSections(mod.sections?.length ? mod.sections : [{ title: "", body: "" }]);
     setLinks(mod.links?.length ? mod.links : [{ label: "", url: "" }]);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -162,11 +168,17 @@ export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manage
   const updateLink = (i, key, val) =>
     setLinks((l) => l.map((lk, idx) => (idx === i ? { ...lk, [key]: val } : lk)));
 
-  // Klick auf "Modul aktivieren" für eines der vorgefertigten Module
+  // Klick auf "Modul aktivieren" für eines der vorgefertigten Module.
+  // [FIX] Nach dem Aktivieren in der Modul-Verwaltung bleiben statt zur Startseite zu springen.
   const handleAdd = () => {
     if (!selected) return;
+    const aktiviertesLabel = selected.label;
     onAdd({ ...selected, active: true });   // ausgewähltes/archiviertes Modul aktivieren
-    navigate("/");
+    setSelected(null);
+    setShowForm(false);
+    setFormError("");
+    setFormOk(`"${aktiviertesLabel}" wurde aktiviert.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Klick auf "Modul erstellen" / "Änderungen speichern" im Custom-Formular
@@ -233,6 +245,17 @@ export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manage
 
   // True wenn wir aktuell ein bestehendes Modul bearbeiten
   const istEditMode = !!editing;
+
+  // ── [REDESIGN] Abgeleitete Werte für die Live-Vorschau (spiegeln ComingSoon.jsx) ──
+  const slugPreview = istEditMode
+    ? (editing?.path || "/")
+    : (customName.trim() ? "/" + (slugify(customName) || "dein-modul") : "/dein-modul");
+  const previewSections = sections.filter((s) => s.title.trim() || s.body.trim());
+  const previewLinks = links.filter((l) => l.url.trim() && l.label.trim());
+  const previewHasContent =
+    !!customBanner.trim() || previewSections.length > 0 || previewLinks.length > 0;
+  // Aktuelle Akzentfarbe ist keine der Presets → der „Eigene Farbe"-Swatch ist aktiv
+  const isCustomColor = !FARB_OPTIONEN.some((f) => f.value === customColor);
 
   // ── [MERGE] Admin: Modul in der Reihenfolge verschieben ──
   const moveItem = (index, dir) => {
@@ -379,188 +402,305 @@ export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manage
           </div>
         )}
 
-        {/* Inline-Formular für eigenes Modul (Erstellen oder Bearbeiten) */}
+        {/* ── [REDESIGN] Zwei-Spalten-Builder: links bearbeiten, rechts echte Live-Vorschau ── */}
         {showForm && (
-          <div className="custom-module-form fade-up">
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a", marginBottom: 14 }}>
-              {istEditMode ? "Modul bearbeiten" : "Eigenes Modul erstellen"}
-            </div>
+          <div className="cm-builder fade-up">
 
-            <label className="login-label">Name *</label>
-            <input
-              className="login-input"
-              type="text"
-              placeholder="z.B. Sport-Anmeldung"
-              value={customName}
-              onChange={(e) => { setCustomName(e.target.value); setFormError(""); }}
-              autoFocus
-              maxLength={40}
-            />
-            {/* Hinweis dass URL stabil bleibt – wichtig für User-Vertrauen */}
-            {istEditMode && (
-              <div style={{ marginTop: -12, marginBottom: 16, fontSize: 11, color: "#94a3b8" }}>
-                URL-Pfad bleibt unverändert: <code>{editing?.path}</code>
+            {/* ═══════════ LINKS: Editor ═══════════ */}
+            <div className="cm-editor">
+              <div className="cm-editor-head">
+                <div className="cm-editor-title">
+                  {istEditMode ? "Modul bearbeiten" : "Eigenes Modul erstellen"}
+                </div>
+                <div className="cm-editor-sub">
+                  {istEditMode
+                    ? "Änderungen wirken sofort für alle Nutzer."
+                    : "Felder ausfüllen – rechts siehst du sofort, wie die fertige Seite aussieht."}
+                </div>
               </div>
-            )}
 
-            <label className="login-label">Icon (Emoji, optional)</label>
-            <input
-              className="login-input"
-              type="text"
-              placeholder=""
-              value={customIcon}
-              onChange={(e) => setCustomIcon(e.target.value)}
-              maxLength={4}
-            />
+              {/* GRUPPE 1 — Grunddaten */}
+              <div className="cm-group">
+                <div className="cm-group-title"><span className="cm-step">1</span> Grunddaten</div>
 
-            <label className="login-label">Kurzbeschreibung (optional, max 300 Zeichen)</label>
-            <textarea
-              className="login-input"
-              rows={2}
-              placeholder="Worum geht's bei dem Modul in einem Satz?"
-              value={customDesc}
-              onChange={(e) => setCustomDesc(e.target.value)}
-              maxLength={300}
-              style={{ resize: "vertical", fontFamily: "inherit" }}
-            />
-
-            <label className="login-label">Akzentfarbe</label>
-            <div className="color-row">
-              {FARB_OPTIONEN.map((f) => (
-                <button
-                  key={f.value}
-                  type="button"
-                  className={"color-swatch" + (customColor === f.value ? " active" : "")}
-                  style={{ background: f.value }}
-                  onClick={() => setColor(f.value)}
-                  aria-label={f.label}
-                  title={f.label}
+                <label className="cm-label">
+                  <span>Name <span className="cm-req">*</span></span>
+                  <span className="cm-count">{customName.length}/40</span>
+                </label>
+                <input
+                  className="login-input cm-field"
+                  type="text"
+                  placeholder="z.B. Sport-Anmeldung"
+                  value={customName}
+                  onChange={(e) => { setCustomName(e.target.value); setFormError(""); }}
+                  autoFocus
+                  maxLength={40}
                 />
-              ))}
+                {istEditMode ? (
+                  <div className="cm-hint">URL-Pfad bleibt unverändert: <code>{editing?.path}</code></div>
+                ) : (
+                  <div className="cm-hint">Adresse der Seite: <code>{slugPreview}</code></div>
+                )}
+
+                <label className="cm-label" style={{ marginTop: 16 }}><span>Icon</span></label>
+                <div className="cm-emoji-row">
+                  {EMOJI_PICKS.map((em) => (
+                    <button
+                      key={em}
+                      type="button"
+                      className={"cm-emoji" + (customIcon === em ? " active" : "")}
+                      onClick={() => setCustomIcon(customIcon === em ? "" : em)}
+                      aria-label={"Icon " + em}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                  <input
+                    className="login-input cm-emoji-input"
+                    type="text"
+                    placeholder="eigenes"
+                    value={customIcon}
+                    onChange={(e) => setCustomIcon(e.target.value)}
+                    maxLength={4}
+                    aria-label="Eigenes Icon"
+                  />
+                </div>
+
+                <label className="cm-label" style={{ marginTop: 16 }}>
+                  <span>Kurzbeschreibung</span>
+                  <span className="cm-count">{customDesc.length}/300</span>
+                </label>
+                <textarea
+                  className="login-input cm-field"
+                  rows={2}
+                  placeholder="Worum geht's bei dem Modul in einem Satz?"
+                  value={customDesc}
+                  onChange={(e) => setCustomDesc(e.target.value)}
+                  maxLength={300}
+                  style={{ resize: "vertical", fontFamily: "inherit" }}
+                />
+
+                <label className="cm-label" style={{ marginTop: 16 }}><span>Akzentfarbe</span></label>
+                <div className="cm-color-row">
+                  {FARB_OPTIONEN.map((f) => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      className={"cm-swatch" + (customColor === f.value ? " active" : "")}
+                      style={{ background: f.value }}
+                      onClick={() => setColor(f.value)}
+                      aria-label={f.label}
+                      title={f.label}
+                    >
+                      {customColor === f.value && <span className="cm-swatch-check">✓</span>}
+                    </button>
+                  ))}
+                  <label
+                    className={"cm-swatch cm-swatch-custom" + (isCustomColor ? " active" : "")}
+                    title="Eigene Farbe wählen"
+                    style={isCustomColor ? { background: customColor, borderStyle: "solid" } : undefined}
+                  >
+                    {isCustomColor
+                      ? <span className="cm-swatch-check">✓</span>
+                      : <span aria-hidden="true">+</span>}
+                    <input
+                      type="color"
+                      value={customColor}
+                      onChange={(e) => setColor(e.target.value)}
+                      aria-label="Eigene Farbe"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* GRUPPE 2 — Banner */}
+              <div className="cm-group">
+                <div className="cm-group-title">
+                  <span className="cm-step">2</span> Banner-Bild <span className="cm-optional">optional</span>
+                </div>
+                <input
+                  className="login-input cm-field"
+                  type="url"
+                  placeholder="https://…/bild.jpg"
+                  value={customBanner}
+                  onChange={(e) => { setBanner(e.target.value); setBannerError(false); }}
+                />
+                <div className="cm-hint">
+                  {customBanner.trim()
+                    ? (bannerError
+                        ? "⚠ Bild konnte nicht geladen werden – URL prüfen."
+                        : "✓ Bild gefunden – siehe Vorschau rechts.")
+                    : "Querformat wirkt am besten (z.B. 1200×400 px)."}
+                </div>
+              </div>
+
+              {/* GRUPPE 3 — Inhalts-Abschnitte */}
+              <div className="cm-group">
+                <div className="cm-group-title-row">
+                  <div className="cm-group-title"><span className="cm-step">3</span> Inhalts-Abschnitte</div>
+                  <button type="button" className="builder-add" onClick={addSection}>+ Abschnitt</button>
+                </div>
+                {sections.map((sec, i) => (
+                  <div key={i} className="builder-item">
+                    <div className="builder-item-head">
+                      <span className="builder-item-num">#{i + 1}</span>
+                      {/* Entfernen nur ab 2 Abschnitten, damit nie ein leerer Builder ohne Feld bleibt */}
+                      {sections.length > 1 && (
+                        <button type="button" className="builder-remove" onClick={() => removeSection(i)} title="Abschnitt entfernen">×</button>
+                      )}
+                    </div>
+                    <input
+                      className="login-input"
+                      type="text"
+                      placeholder="Titel (optional)"
+                      value={sec.title}
+                      onChange={(e) => updateSection(i, "title", e.target.value)}
+                      maxLength={80}
+                    />
+                    <textarea
+                      className="login-input"
+                      rows={3}
+                      placeholder="Text-Inhalt des Abschnitts"
+                      value={sec.body}
+                      onChange={(e) => updateSection(i, "body", e.target.value)}
+                      style={{ resize: "vertical", fontFamily: "inherit" }}
+                      maxLength={2000}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* GRUPPE 4 — Externe Links */}
+              <div className="cm-group">
+                <div className="cm-group-title-row">
+                  <div className="cm-group-title"><span className="cm-step">4</span> Externe Links</div>
+                  <button type="button" className="builder-add" onClick={addLink}>+ Link</button>
+                </div>
+                {links.map((lk, i) => (
+                  <div key={i} className="builder-item">
+                    <div className="builder-item-head">
+                      <span className="builder-item-num">#{i + 1}</span>
+                      {links.length > 1 && (
+                        <button type="button" className="builder-remove" onClick={() => removeLink(i)} title="Link entfernen">×</button>
+                      )}
+                    </div>
+                    <input
+                      className="login-input"
+                      type="text"
+                      placeholder="Anzeigename z.B. „Anmeldung"
+                      value={lk.label}
+                      onChange={(e) => updateLink(i, "label", e.target.value)}
+                      maxLength={60}
+                    />
+                    <input
+                      className="login-input"
+                      type="url"
+                      placeholder="https://..."
+                      value={lk.url}
+                      onChange={(e) => updateLink(i, "url", e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {formError && <div className="login-error cm-error">{formError}</div>}
+
+              <div className="btn-row">
+                <button className="btn-primary" style={{ width: "auto", padding: "10px 28px" }} onClick={handleCreateCustom}>
+                  {istEditMode ? "Änderungen speichern" : "Modul erstellen"}
+                </button>
+                <button className="btn-secondary" onClick={closeForm}>Abbrechen</button>
+              </div>
             </div>
 
-            <label className="login-label">Banner-Bild (URL, optional)</label>
-            <input
-              className="login-input"
-              type="url"
-              placeholder="https://..."
-              value={customBanner}
-              onChange={(e) => setBanner(e.target.value)}
-            />
+            {/* ═══════════ RECHTS: Live-Vorschau (echtes Seiten-Rendering wie ComingSoon.jsx) ═══════════ */}
+            <div className="cm-preview-col">
+              <div className="cm-preview-sticky">
+                <div className="cm-preview-bar">
+                  <span className="cm-live-dot" />
+                  <span className="cm-live-text">Live-Vorschau</span>
+                  <span className="cm-preview-spacer" />
+                  <span className="cm-preview-hint">So sieht die Seite für alle aus</span>
+                </div>
 
-            {/* Inhalts-Abschnitte: beliebig viele Title+Body-Paare */}
-            <div className="builder-block">
-              <div className="builder-head">
-                <div className="builder-title">Inhalts-Abschnitte</div>
-                <button type="button" className="builder-add" onClick={addSection}>
-                  + Abschnitt
-                </button>
-              </div>
-              {sections.map((sec, i) => (
-                <div key={i} className="builder-item">
-                  <div className="builder-item-head">
-                    <span className="builder-item-num">#{i + 1}</span>
-                    {/* Entfernen-Button erscheint nur wenn mindestens 2 Abschnitte da sind,
-                        sonst hat der User irgendwann einen leeren Builder ohne Eingabefeld */}
-                    {sections.length > 1 && (
-                      <button type="button" className="builder-remove" onClick={() => removeSection(i)} title="Abschnitt entfernen">
-                        ×
-                      </button>
+                <div className="cm-device">
+                  {/* Fake App-Chrome: Teal-Leiste wie die echte Navbar */}
+                  <div className="cm-chrome">
+                    <span className="cm-chrome-dot" />
+                    <span className="cm-chrome-dot" />
+                    <span className="cm-chrome-dot" />
+                    <span className="cm-chrome-url">{slugPreview}</span>
+                  </div>
+
+                  <div className="cm-device-body">
+                    {/* Seitenkopf */}
+                    <div className="cm-page-header">
+                      <div>
+                        <div className="cm-page-title" style={{ color: customColor }}>
+                          {customIcon.trim() ? customIcon.trim() + " " : ""}{customName.trim() || "Mein Modul"}
+                        </div>
+                        <div className="cm-page-sub">Eigenes Modul · HS Mittweida</div>
+                      </div>
+                      <span className="cm-back">← Dashboard</span>
+                    </div>
+
+                    {/* Banner-Bild */}
+                    {customBanner.trim() && !bannerError && (
+                      <div className="cm-banner" style={{ borderTopColor: customColor }}>
+                        <img
+                          src={customBanner.trim()}
+                          alt=""
+                          onError={() => setBannerError(true)}
+                          onLoad={() => setBannerError(false)}
+                        />
+                      </div>
+                    )}
+                    {customBanner.trim() && bannerError && (
+                      <div className="cm-banner-error" style={{ borderTopColor: customColor }}>
+                        Bild konnte nicht geladen werden
+                      </div>
+                    )}
+
+                    {/* Beschreibung als Intro-Karte */}
+                    {customDesc.trim() && (
+                      <div className="cm-pcard" style={{ borderTop: `3px solid ${customColor}` }}>
+                        <div className="cm-pdesc">{customDesc}</div>
+                      </div>
+                    )}
+
+                    {/* Abschnitte als Karten */}
+                    {previewSections.map((s, i) => (
+                      <div key={i} className="cm-pcard">
+                        {s.title.trim() && <div className="cm-psec-title">{s.title}</div>}
+                        {s.body.trim() && <div className="cm-psec-body">{s.body}</div>}
+                      </div>
+                    ))}
+
+                    {/* Links als Pills */}
+                    {previewLinks.length > 0 && (
+                      <div className="cm-pcard">
+                        <div className="cm-plinks-title">Externe Links</div>
+                        <div className="cm-plinks">
+                          {previewLinks.map((l, i) => (
+                            <span key={i} className="cm-plink" style={{ borderColor: customColor, color: customColor }}>
+                              ↗ {l.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Leer-Zustand wie ComingSoon */}
+                    {!previewHasContent && (
+                      <div className="cm-pcard" style={{ borderTop: `3px solid ${customColor}` }}>
+                        <div className="cm-pempty">
+                          <strong>{customName.trim() || "Mein Modul"}</strong> ist aktiviert – die Inhalte folgen in Kürze.
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <input
-                    className="login-input"
-                    type="text"
-                    placeholder="Titel (optional)"
-                    value={sec.title}
-                    onChange={(e) => updateSection(i, "title", e.target.value)}
-                    maxLength={80}
-                  />
-                  <textarea
-                    className="login-input"
-                    rows={3}
-                    placeholder="Text-Inhalt des Abschnitts"
-                    value={sec.body}
-                    onChange={(e) => updateSection(i, "body", e.target.value)}
-                    style={{ resize: "vertical", fontFamily: "inherit" }}
-                    maxLength={2000}
-                  />
                 </div>
-              ))}
-            </div>
-
-            {/* Externe Links: Label-URL-Paare */}
-            <div className="builder-block">
-              <div className="builder-head">
-                <div className="builder-title">Externe Links</div>
-                <button type="button" className="builder-add" onClick={addLink}>
-                  + Link
-                </button>
               </div>
-              {links.map((lk, i) => (
-                <div key={i} className="builder-item">
-                  <div className="builder-item-head">
-                    <span className="builder-item-num">#{i + 1}</span>
-                    {links.length > 1 && (
-                      <button type="button" className="builder-remove" onClick={() => removeLink(i)} title="Link entfernen">
-                        ×
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    className="login-input"
-                    type="text"
-                    placeholder="Anzeigename z.B. „Anmeldung"
-                    value={lk.label}
-                    onChange={(e) => updateLink(i, "label", e.target.value)}
-                    maxLength={60}
-                  />
-                  <input
-                    className="login-input"
-                    type="url"
-                    placeholder="https://..."
-                    value={lk.url}
-                    onChange={(e) => updateLink(i, "url", e.target.value)}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Live-Vorschau: aktualisiert sich bei jedem Tastendruck */}
-            <div className="builder-block">
-              <div className="builder-title" style={{ marginBottom: 8 }}>Vorschau</div>
-              <div className="custom-preview" style={{ borderTop: `3px solid ${customColor}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                  <div style={{ fontSize: 22 }}>{customIcon.trim() || ""}</div>
-                  <div style={{ fontWeight: 600, color: customColor, fontSize: 16 }}>
-                    {customName.trim() || "Mein Modul"}
-                  </div>
-                </div>
-                {customDesc.trim() && (
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>{customDesc}</div>
-                )}
-                {sections.filter((s) => s.title.trim() || s.body.trim()).length > 0 && (
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>
-                    {sections.filter((s) => s.title.trim() || s.body.trim()).length} Abschnitt(e)
-                  </div>
-                )}
-                {links.filter((l) => l.url.trim() && l.label.trim()).length > 0 && (
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>
-                    {links.filter((l) => l.url.trim() && l.label.trim()).length} externe Link(s)
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {formError && <div className="login-error" style={{ textAlign: "left" }}>{formError}</div>}
-
-            <div className="btn-row">
-              <button className="btn-primary" style={{ width: "auto", padding: "10px 28px" }} onClick={handleCreateCustom}>
-                {istEditMode ? "Änderungen speichern" : "Modul erstellen"}
-              </button>
-              <button className="btn-secondary" onClick={closeForm}>
-                Abbrechen
-              </button>
             </div>
           </div>
         )}

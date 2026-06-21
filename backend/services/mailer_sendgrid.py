@@ -44,6 +44,16 @@ try:
 except Exception:  # certifi nicht installiert -> Standard-Kontext nutzen
     pass
 
+# ── [AKTIV] .env laden – genau wie der Passwort-Reset (mail_service.py) ───
+# Stellt sicher, dass SENDGRID_API_KEY + MAIL_FROM gesetzt sind, egal in welcher
+# Reihenfolge dieser Mailer importiert wird. Ohne das liefe send_mail im Dry-Run
+# (Mail nur ins Log), obwohl die Zugangsdaten längst in der .env stehen.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 
 log = logging.getLogger("ari.mailer_sendgrid")
 
@@ -55,8 +65,18 @@ def _env(key: str, default: str = "") -> str:
 
 
 def sendgrid_configured() -> bool:
-    """Ist genug konfiguriert, um echt zu senden? Sonst Dry-Run."""
+    """SendGrid scharf? (API-Key + Absender gesetzt)"""
     return bool(_env("SENDGRID_API_KEY")) and bool(_env("MAIL_FROM"))
+
+
+def _gmail_configured() -> bool:
+    """Gmail-SMTP scharf? (Benutzer + App-Passwort aus der .env gesetzt)"""
+    return bool(_env("MAIL_USERNAME")) and bool(_env("MAIL_PASSWORD"))
+
+
+def mail_configured() -> bool:
+    """Mindestens ein Versandweg konfiguriert (SendGrid ODER Gmail-SMTP)."""
+    return sendgrid_configured() or _gmail_configured()
 
 
 def public_base_url() -> str:
@@ -64,7 +84,62 @@ def public_base_url() -> str:
     return _env("PUBLIC_BASE_URL", "http://localhost:8000")
 
 
-# ── Versand (SendGrid statt SMTP) ────────────────────────────────────────
+# Klartext-Ursache des letzten Fehlversands – für UI-Feedback / Diagnose.
+_LAST_SEND_ERROR: Optional[str] = None
+
+
+def last_send_error() -> Optional[str]:
+    """Warum scheiterte der letzte Versand? (oder None, wenn ok/Dry-Run)"""
+    return _LAST_SEND_ERROR
+
+
+# ── Versand: SendGrid zuerst, dann Gmail-SMTP als Fallback ───────────────
+
+def _send_via_sendgrid(to, subject, body_text, body_html) -> bool:
+    """Versand über SendGrid. Wirft bei Fehler (damit der Fallback greifen kann)."""
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail, Email
+
+    message = Mail(
+        from_email=Email(_env("MAIL_FROM", "noreply@example.local"),
+                         _env("MENSA_MAIL_FROM_NAME", "HSMW Mensa")),
+        to_emails=to,
+        subject=subject,
+        plain_text_content=body_text,
+    )
+    if body_html:
+        message.html_content = body_html
+
+    sg = SendGridAPIClient(_env("SENDGRID_API_KEY"))
+    response = sg.send(message)
+    return 200 <= int(response.status_code) < 300
+
+
+def _send_via_gmail(to, subject, body_text, body_html) -> None:
+    """Versand über Gmail-SMTP mit MAIL_USERNAME/MAIL_PASSWORD aus der .env.
+    Wirft bei Fehler (z.B. falsches/kein App-Passwort)."""
+    import smtplib
+    from email.message import EmailMessage
+
+    sender = _env("MAIL_FROM") or _env("MAIL_USERNAME")
+    name = _env("MAIL_FROM_NAME") or _env("MENSA_MAIL_FROM_NAME", "HSMW Mensa")
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = f"{name} <{sender}>" if name else sender
+    msg["To"] = to
+    msg.set_content(body_text)
+    if body_html:
+        msg.add_alternative(body_html, subtype="html")
+
+    ctx = ssl.create_default_context()
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
+        server.ehlo()
+        server.starttls(context=ctx)
+        server.ehlo()
+        server.login(_env("MAIL_USERNAME"), _env("MAIL_PASSWORD"))
+        server.send_message(msg)
+
 
 def send_mail(
     to: str,
@@ -73,53 +148,55 @@ def send_mail(
     body_html: Optional[str] = None,
 ) -> bool:
     """
-    Schickt eine Mail an `to` ueber SendGrid. Gibt True zurueck bei Erfolg
-    (oder Dry-Run), False bei tatsaechlichem Versand-Fehler.
+    Schickt eine Mail an `to`. Reihenfolge: SendGrid (falls konfiguriert) →
+    bei Fehler Gmail-SMTP (falls konfiguriert). True bei Erfolg ODER im Dry-Run
+    (kein Anbieter konfiguriert); False bei echtem Fehlversand.
+    Danach steht in `last_send_error()` die Klartext-Ursache.
 
     Gleiche Signatur wie mailer.send_mail -> Drop-in-Ersatz.
     """
-    sender_addr = _env("MAIL_FROM", "noreply@example.local")
-    sender_name = _env("MENSA_MAIL_FROM_NAME", "HSMW Mensa")
+    global _LAST_SEND_ERROR
+    _LAST_SEND_ERROR = None
 
-    # ── Dry-Run: nur loggen, nicht senden ────────────────────────────────
-    if not sendgrid_configured():
-        log.warning(
-            "SendGrid nicht konfiguriert -> Dry-Run-Mail an %s: %s",
-            to, subject
-        )
-        # True, damit der Scheduler last_sent_date trotzdem setzt (sonst
-        # laeuft im Dev-Modus jeder Tick durch dieselben Abos).
+    # ── 1) SendGrid ──────────────────────────────────────────────────────
+    if sendgrid_configured():
+        try:
+            if _send_via_sendgrid(to, subject, body_text, body_html):
+                log.info("Mail an %s über SendGrid gesendet.", to)
+                return True
+            _LAST_SEND_ERROR = "SendGrid: unerwarteter Status (kein 2xx)"
+            log.error("SendGrid unerwarteter Status an %s", to)
+        except Exception as e:
+            s = str(e)
+            status = getattr(e, "status_code", None) or getattr(e, "code", None)
+            if status == 401 or "401" in s:
+                _LAST_SEND_ERROR = "SendGrid 401 – API-Key ungültig/abgelaufen"
+            elif status == 403 or "403" in s:
+                _LAST_SEND_ERROR = "SendGrid 403 – Absender (MAIL_FROM) nicht verifiziert"
+            else:
+                _LAST_SEND_ERROR = f"SendGrid-Fehler: {e}"
+            log.error("SendGrid send failed an %s: %s", to, e)
+        # → weiter zum Gmail-Fallback
+
+    # ── 2) Gmail-SMTP-Fallback ───────────────────────────────────────────
+    if _gmail_configured():
+        try:
+            _send_via_gmail(to, subject, body_text, body_html)
+            log.info("Mail an %s über Gmail-SMTP gesendet.", to)
+            _LAST_SEND_ERROR = None
+            return True
+        except Exception as e:
+            zusatz = f"Gmail-SMTP-Fehler: {e}"
+            _LAST_SEND_ERROR = f"{_LAST_SEND_ERROR} | {zusatz}" if _LAST_SEND_ERROR else zusatz
+            log.error("Gmail-SMTP send failed an %s: %s", to, e)
+
+    # ── 3) Nichts konfiguriert → Dry-Run (nur Log) ───────────────────────
+    if not mail_configured():
+        _LAST_SEND_ERROR = "dry_run"
+        log.warning("Kein Mailversand konfiguriert -> Dry-Run-Mail an %s: %s", to, subject)
         return True
 
-    # ── Echter Versand ueber SendGrid ────────────────────────────────────
-    try:
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import Mail, Email
-
-        message = Mail(
-            from_email=Email(sender_addr, sender_name),
-            to_emails=to,
-            subject=subject,
-            plain_text_content=body_text,
-        )
-        # HTML-Variante zusaetzlich anhaengen, falls vorhanden.
-        if body_html:
-            message.html_content = body_html
-
-        sg = SendGridAPIClient(_env("SENDGRID_API_KEY"))
-        response = sg.send(message)
-
-        # SendGrid liefert 2xx bei Erfolg (meist 202 Accepted).
-        ok = 200 <= int(response.status_code) < 300
-        if ok:
-            log.info("Mensa-Mail an %s gesendet (SendGrid %s)", to, response.status_code)
-        else:
-            log.error("SendGrid unerwarteter Status %s an %s", response.status_code, to)
-        return ok
-    except Exception as e:
-        # Scheduler darf nicht abstuerzen – nur Bescheid sagen.
-        log.error("SendGrid send failed an %s: %s", to, e)
-        return False
+    return False
 
 
 # ── Templates (identisch zu mailer.py, damit Mails gleich aussehen) ──────

@@ -59,6 +59,29 @@ def _should_log(path: str) -> bool:
     return True
 
 
+# ── [FIX] Entprellung: dieselbe IP + Methode + Pfad innerhalb eines kurzen
+# Fensters zählt nur EINMAL. Verhindert, dass ein einzelner Seitenaufruf
+# (mehrere parallele fetches, React-StrictMode-Doppelaufrufe im Dev, schnelles
+# Hin-und-Her-Navigieren) die Besuchszahl unrealistisch hochtreibt.
+_DEDUP_WINDOW_S = 60.0
+_recent_hits: dict = {}
+
+
+def _ist_duplikat(ip: str, method: str, path: str) -> bool:
+    """True, wenn dieselbe IP+Methode+Pfad-Kombi gerade erst geloggt wurde."""
+    now = time.monotonic()
+    key = (ip, method, path)
+    last = _recent_hits.get(key)
+    _recent_hits[key] = now
+    # gelegentlich aufräumen, damit der Speicher nicht unbegrenzt wächst
+    if len(_recent_hits) > 2000:
+        grenze = now - _DEDUP_WINDOW_S
+        for k, t in list(_recent_hits.items()):
+            if t < grenze:
+                _recent_hits.pop(k, None)
+    return last is not None and (now - last) < _DEDUP_WINDOW_S
+
+
 def _client_ip(request: Request) -> str:
     """
     Erste IP aus X-Forwarded-For (falls hinter Proxy), sonst direkt vom Socket.
@@ -112,12 +135,17 @@ class VisitLoggerMiddleware(BaseHTTPMiddleware):
         if not _should_log(path):
             return response
 
+        # ── [FIX] Doppelte/rapide Requests derselben IP nicht mehrfach zählen ──
+        client_ip = _client_ip(request)
+        if _ist_duplikat(client_ip, method, path):
+            return response
+
         record = {
             "path": path[:255],
             "method": method[:8],
             "status_code": int(response.status_code),
             "response_time_ms": elapsed_ms,
-            "client_ip": _client_ip(request),
+            "client_ip": client_ip,
             "user_agent": (request.headers.get("user-agent") or "")[:200],
         }
 

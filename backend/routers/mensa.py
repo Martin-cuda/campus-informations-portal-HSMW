@@ -6,12 +6,36 @@ from datetime import datetime
 import httpx
 #damit macht man http anfragen an die apis
 #lowk wie fetch in js aber nur in python
+import time
+#time für den kurzen In-Memory-Cache des Speiseplans (Performance)
 
 router = APIRouter(prefix="/api/mensa", tags = ["Mensa"])
 # router wird mit präfix mensa definiert was bedeutet das alle endpunkte
 # in der datei mit /api/mensa beginnen
 HSMW_API_URL = "https://app.hs-mittweida.de/v2/speiseplan"
 #URL der hsmw api
+
+# ── [PERF] Kurzlebiger In-Memory-Cache für den Speiseplan ────────────────
+# Die HSMW-API ist je nach Tageszeit langsam (~3 s pro Aufruf). Der Plan ändert
+# sich aber höchstens täglich – deshalb halten wir die Roh-Antwort ein paar
+# Minuten im Speicher. Folge-Requests (Dashboard-Widget, /heute, /) antworten
+# dann praktisch sofort, statt jedes Mal die langsame Upstream-API zu treffen.
+_SPEISEPLAN_CACHE = {"data": None, "ts": 0.0}
+_SPEISEPLAN_TTL = 300.0  # Sekunden = 5 Minuten
+
+async def _speiseplan_laden() -> dict:
+    """Liefert die HSMW-Speiseplan-JSON – aus dem Cache, solange sie frisch ist."""
+    jetzt = time.monotonic()
+    cache = _SPEISEPLAN_CACHE
+    if cache["data"] is not None and (jetzt - cache["ts"]) < _SPEISEPLAN_TTL:
+        return cache["data"]
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        antwort = await client.get(HSMW_API_URL)
+        antwort.raise_for_status()
+    daten = antwort.json()
+    cache["data"] = daten
+    cache["ts"] = jetzt
+    return daten
 
 def unix_zu_datum(timestamp: int) -> str:
     """
@@ -105,17 +129,13 @@ async def speiseplan_komplett():
     gibt den Wochenplan für die mensa zurück
     :return:
     """
-    #"async with" ist für asynchrone Operationen
-    # das bedeutet das wenn die api ihr ding macht kann python andere dinge tun
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
-            antwort = await client.get(HSMW_API_URL)
-            antwort.raise_for_status ()
-            # wirft z.b. 404 exception wenn http fehler
-        except httpx.RequestError as fehler:
-            # netzwerk fehler wenn hsmw server nicht erreichbar ist
-            raise HTTPException(status_code=503, detail=f"HSMW-API nicht erreichbar: {fehler}")
-    daten = antwort.json()
+    # [PERF] Daten kommen aus dem Cache (siehe _speiseplan_laden) – nur der erste
+    # Aufruf nach Ablauf der TTL trifft die langsame HSMW-API.
+    try:
+        daten = await _speiseplan_laden()
+    except httpx.HTTPError as fehler:
+        # Netzwerk- ODER HTTP-Fehler der Upstream-API → 503 (Service nicht verfügbar)
+        raise HTTPException(status_code=503, detail=f"HSMW-API nicht erreichbar: {fehler}")
     tage = [tag_verarbeiten(tag) for tag in daten.get("day", [])]
     return {"tage": tage}
 
@@ -126,19 +146,18 @@ async def speiseplan_heute():
     gibt nur den mensaplan für heute wieder
     :return:
     """
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
-            antwort = await client.get(HSMW_API_URL)
-            antwort.raise_for_status()
-        except httpx.RequestError as fehler:
-            raise HTTPException(status_code=503, detail=f"HSMW-API nicht erreichbar: {fehler}")
-        daten = antwort.json()
-        heute = datetime.now().date()
+    try:
+        daten = await _speiseplan_laden()
+    except httpx.HTTPError as fehler:
+        raise HTTPException(status_code=503, detail=f"HSMW-API nicht erreichbar: {fehler}")
 
-        for tag in daten.get("day", []):
-            tag_datum = datetime.fromtimestamp(tag["date"]).date()
-            if tag_datum == heute:
-                return tag_verarbeiten(tag)
+    heute = datetime.now().date()
+    for tag in daten.get("day", []):
+        tag_datum = datetime.fromtimestamp(tag["date"]).date()
+        if tag_datum == heute:
+            return tag_verarbeiten(tag)
 
-    #Wenn kein heutiger speise plan verfügbar dann
-        raise HTTPException(status_code=404, detail= "Kein Speiseplan für heute verfügbar ")
+    # Kein heutiger Speiseplan = KEIN Fehler (z.B. Wochenende), nur "leer".
+    # Deshalb 200 mit leerer Kategorienliste statt 404 – das Dashboard-Widget
+    # kann so sauber "Heute kein Plan" anzeigen, statt auf einen 404 zu laufen.
+    return {"datum_raw": None, "datum_label": None, "kategorien": [], "hinweis": "Kein Speiseplan für heute verfügbar"}

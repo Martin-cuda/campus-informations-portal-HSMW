@@ -96,8 +96,8 @@ export default function Navbar({
             + Modul
           </Link>
 
-          <Link to="/admin" className="navbar-pill">
-            Admin
+          <Link to="/admin/dashboard" className="navbar-pill">
+            Dashboard
           </Link>
 
           <button

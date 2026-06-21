@@ -10,7 +10,9 @@
 //   GET /api/admin/metrics/recent
 // ──────────────────────────────────────────────────────────────────────────
 
-const API = "http://localhost:8000";
+// Relativ → selber Origin: im Dev über den Vite-Proxy (/api → 127.0.0.1:8000),
+// in Prod über den Caddy-Proxy. Kein hartes localhost:8000 mehr (war langsam/CORS-anfällig).
+const API = "";
 
 /**
  * Holt den JWT aus sessionStorage – wird vom AdminLogin dort hinterlegt.
@@ -45,6 +47,14 @@ export function fetchMetricsByHour()       { return getJson("/api/admin/metrics/
 export function fetchMetricsTopEndpoints() { return getJson("/api/admin/metrics/top-endpoints"); }
 export function fetchMetricsErrors()       { return getJson("/api/admin/metrics/errors");        }
 export function fetchMetricsRecent()       { return getJson("/api/admin/metrics/recent?limit=25");}
+
+/** Setzt die Besuchsstatistik zurück: löscht ALLE Visit-Logs (Admin-only, nicht umkehrbar). */
+export async function resetMetrics() {
+  const r = await fetch(`${API}/api/admin/metrics/visits`, { method: "DELETE", headers: authHeaders() });
+  if (r.status === 401 || r.status === 403) throw new Error("AUTH");
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
 
 /** Prüft ohne Backend-Call, ob aktuell jemand eingeloggt sein KÖNNTE. */
 export function hasToken() {

@@ -8,7 +8,8 @@
 #   GET /api/admin/metrics/by-hour          → Visits pro Stunde, letzte 24h
 #   GET /api/admin/metrics/top-endpoints    → Top 10 meistgenutzte Endpunkte
 #   GET /api/admin/metrics/recent           → Letzte N Roh-Einträge (Debug)
-#   GET /api/admin/metrics/errors           → Anteil 4xx/5xx letzte 24h
+#   GET /api/admin/metrics/errors           → Status-Klassen letzte 24h (2xx/3xx/4xx/404/5xx)
+#   DELETE /api/admin/metrics/visits        → ALLE Visit-Logs löschen (Reset der Statistik auf 0)
 #
 # DoD-Mapping:
 #   ✓ Aggregierte Daten (24h Aufrufe)  → /summary + /by-hour
@@ -81,14 +82,27 @@ def metrics_summary(
           .filter(VisitLog.ts >= cutoff_24h)
           .scalar()
     ) or 0
+    # [FIX] Eindeutige Besucher zusätzlich für 1h und gesamt – das ist die
+    # ehrliche "Besucher"-Zahl (eine Person = 1, egal wie viele API-Calls sie auslöst).
+    unique_ips_1h = (
+        db.query(func.count(func.distinct(VisitLog.client_ip)))
+          .filter(VisitLog.ts >= cutoff_1h)
+          .scalar()
+    ) or 0
+    unique_ips_total = (
+        db.query(func.count(func.distinct(VisitLog.client_ip)))
+          .scalar()
+    ) or 0
 
     return {
-        "total":          int(total),
-        "last_24h":       int(last_24h),
-        "last_1h":        int(last_1h),
-        "avg_ms_24h":     round(float(avg_ms_24h), 1),
-        "unique_ips_24h": int(unique_ips_24h),
-        "generated_at":   now.isoformat() + "Z",
+        "total":            int(total),
+        "last_24h":         int(last_24h),
+        "last_1h":          int(last_1h),
+        "avg_ms_24h":       round(float(avg_ms_24h), 1),
+        "unique_ips_24h":   int(unique_ips_24h),
+        "unique_ips_1h":    int(unique_ips_1h),
+        "unique_ips_total": int(unique_ips_total),
+        "generated_at":     now.isoformat() + "Z",
     }
 
 
@@ -202,34 +216,70 @@ def metrics_errors(
     db: Session = Depends(get_db),
     _admin: Admin = Depends(require_admin),
 ) -> Dict:
-    """Anteil Fehler-Responses (>=400) der letzten 24h."""
+    """
+    Antwort-Statusklassen der letzten 24h – sauber nach BEDEUTUNG getrennt.
+
+    Wichtig (REST-Semantik): 404 ist KEIN Serverausfall, sondern "nicht gefunden"
+    (oft Bots, alte Links, Tippfehler in der URL). Deshalb fliesst 404 NICHT in die
+    Server-Fehlerquote ein – die misst ausschliesslich echte 5xx-Fehler.
+    """
     now = _utc_now()
     cutoff = now - timedelta(hours=24)
 
-    total = (
-        db.query(func.count(VisitLog.id))
-          .filter(VisitLog.ts >= cutoff)
-          .scalar()
-    ) or 0
-    errors = (
-        db.query(func.count(VisitLog.id))
-          .filter(VisitLog.ts >= cutoff)
-          .filter(VisitLog.status_code >= 400)
-          .scalar()
-    ) or 0
-    server_errors = (
-        db.query(func.count(VisitLog.id))
-          .filter(VisitLog.ts >= cutoff)
-          .filter(VisitLog.status_code >= 500)
-          .scalar()
-    ) or 0
+    def count_class(low: int, high: int) -> int:
+        return int(
+            db.query(func.count(VisitLog.id))
+              .filter(VisitLog.ts >= cutoff,
+                      VisitLog.status_code >= low,
+                      VisitLog.status_code < high)
+              .scalar() or 0
+        )
 
-    pct = (errors / total * 100.0) if total else 0.0
+    total = int(
+        db.query(func.count(VisitLog.id))
+          .filter(VisitLog.ts >= cutoff)
+          .scalar() or 0
+    )
+    ok           = count_class(200, 300)
+    redirect     = count_class(300, 400)
+    client_error = count_class(400, 500)   # alle 4xx (inkl. 404)
+    server_error = count_class(500, 600)   # echte Serverfehler
+    not_found = int(
+        db.query(func.count(VisitLog.id))
+          .filter(VisitLog.ts >= cutoff, VisitLog.status_code == 404)
+          .scalar() or 0
+    )
+
+    def pct(n: int) -> float:
+        return round(n / total * 100.0, 2) if total else 0.0
 
     return {
-        "total":         int(total),
-        "errors":        int(errors),
-        "server_errors": int(server_errors),
-        "error_pct":     round(pct, 2),
-        "generated_at":  now.isoformat() + "Z",
+        "total":            total,
+        "ok":               ok,
+        "redirect":         redirect,
+        "client_error":     client_error,
+        "not_found":        not_found,
+        "server_error":     server_error,
+        "server_error_pct": pct(server_error),   # die EINE echte Gesundheits-Kennzahl
+        "client_error_pct": pct(client_error),
+        "not_found_pct":    pct(not_found),
+        "generated_at":     now.isoformat() + "Z",
     }
+
+
+@router.delete("/visits")
+def reset_visits(
+    db: Session = Depends(get_db),
+    _admin: Admin = Depends(require_admin),
+) -> Dict:
+    """
+    Setzt die Besuchsstatistik zurück: löscht ALLE Visit-Logs.
+    Danach zeigen Summary/Charts/Tabellen wieder 0. Admin-only, nicht umkehrbar.
+
+    Hinweis: Die /api/admin/metrics-Endpunkte werden vom VisitLogger ohnehin
+    nicht mitgeloggt – nach dem Reset bleibt die Statistik also sauber bei 0
+    und füllt sich erst wieder mit echten Besucher-Requests.
+    """
+    deleted = db.query(VisitLog).delete()
+    db.commit()
+    return {"deleted": int(deleted or 0), "generated_at": _utc_now().isoformat() + "Z"}

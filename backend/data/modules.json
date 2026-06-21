@@ -1,6 +1,50 @@
 [
-  { "id": "mensa", "label": "Mensa", "icon": "", "path": "/mensa", "tag": "", "description": "Speiseplan der HSMW-Mensa.", "color": "#3b82f6", "banner": "", "sections": [], "links": [] },
-  { "id": "news", "label": "News", "icon": "", "path": "/news", "tag": "", "description": "Aktuelle Meldungen rund um die Hochschule.", "color": "#3b82f6", "banner": "", "sections": [], "links": [] },
-  { "id": "raumfinder", "label": "Raumfinder", "icon": "", "path": "/raumfinder", "tag": "", "description": "Übersicht aller Räume und Hörsäle auf dem Campus inkl. Belegung.", "color": "#3b82f6", "banner": "", "sections": [], "links": [] },
-  { "id": "kontakt", "label": "Kontakte", "icon": "", "path": "/kontakt", "tag": "", "description": "Mitarbeiter-Verzeichnis der HSMW mit Suche, Foto, E-Mail und Durchwahl.", "color": "#3b82f6", "banner": "", "sections": [], "links": [] }
+  {
+    "id": "mensa",
+    "label": "Mensa",
+    "icon": "",
+    "path": "/mensa",
+    "tag": "",
+    "description": "Speiseplan der HSMW-Mensa.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": []
+  },
+  {
+    "id": "news",
+    "label": "News",
+    "icon": "",
+    "path": "/news",
+    "tag": "",
+    "description": "Aktuelle Meldungen rund um die Hochschule.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": []
+  },
+  {
+    "id": "raumfinder",
+    "label": "Raumfinder",
+    "icon": "",
+    "path": "/raumfinder",
+    "tag": "",
+    "description": "Übersicht aller Räume und Hörsäle auf dem Campus inkl. Belegung.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": []
+  },
+  {
+    "id": "kontakt",
+    "label": "Kontakte",
+    "icon": "",
+    "path": "/kontakt",
+    "tag": "",
+    "description": "Mitarbeiter-Verzeichnis der HSMW mit Suche, Foto, E-Mail und Durchwahl.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": []
+  }
 ]

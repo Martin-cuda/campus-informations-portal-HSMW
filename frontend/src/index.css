@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* Schriften werden jetzt in index.html via <link rel="preconnect"> + <link rel="stylesheet">
+   geladen – das ist schneller und nicht render-blockierend wie ein CSS-@import. */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1275,3 +1276,310 @@ body {
 .notify-msg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
 .notify-msg-ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
 .notify-msg-err { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   [REDESIGN] „EIGENES MODUL ERSTELLEN" — Zwei-Spalten-Builder mit echter
+   Live-Vorschau. Ausschliesslich additive cm-*-Regeln: ändert nichts am
+   übrigen Stylesheet oder an anderen Seiten/Modulen.
+   ════════════════════════════════════════════════════════════════════════ */
+
+.cm-builder {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+  gap: 22px;
+  align-items: start;
+}
+
+/* ── Editor (linke Spalte) ── */
+.cm-editor {
+  background: var(--bg-subtle-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+.cm-editor-head { margin-bottom: 4px; }
+.cm-editor-title { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+.cm-editor-sub { font-size: 13px; color: var(--text-tertiary); margin-top: 3px; line-height: 1.4; }
+
+.cm-group {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+.cm-group-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+.cm-group-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.cm-group-title-row .cm-group-title { margin-bottom: 0; }
+
+.cm-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.cm-optional {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-quaternary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 99px;
+  padding: 1px 9px;
+}
+
+.cm-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.cm-req { color: var(--red); }
+.cm-count {
+  font-size: 11px;
+  color: var(--text-quaternary);
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 400;
+}
+.cm-field { margin-bottom: 0 !important; }
+
+.cm-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+.cm-hint code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 1px 6px;
+  color: var(--text-secondary);
+}
+
+/* Icon-Schnellauswahl */
+.cm-emoji-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.cm-emoji {
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+.cm-emoji:hover { transform: translateY(-1px); border-color: var(--accent); }
+.cm-emoji.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  background: var(--bg-accent-subtle);
+}
+.cm-emoji-input {
+  width: 84px !important;
+  margin-bottom: 0 !important;
+  text-align: center;
+}
+
+/* Farbauswahl */
+.cm-color-row { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.cm-swatch {
+  position: relative;
+  width: 32px; height: 32px;
+  border-radius: 99px;
+  border: 2px solid var(--bg-card);
+  outline: 1px solid var(--border-color);
+  cursor: pointer;
+  padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .1s, outline-color .1s;
+}
+.cm-swatch:hover { transform: scale(1.1); }
+.cm-swatch.active { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+.cm-swatch-check { color: #fff; font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.cm-swatch-custom {
+  background: var(--bg-card);
+  color: var(--text-tertiary);
+  font-size: 17px; line-height: 1;
+  overflow: hidden;
+  border: 2px dashed var(--border-color);
+  outline: none;
+}
+.cm-swatch-custom input[type="color"] {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; border: none; padding: 0;
+}
+
+.cm-error { text-align: left; margin-top: 14px; }
+
+/* ── Live-Vorschau (rechte Spalte) ── */
+.cm-preview-col { min-width: 0; }
+.cm-preview-sticky { position: sticky; top: 16px; }
+
+.cm-preview-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.cm-live-dot {
+  width: 9px; height: 9px; border-radius: 99px;
+  background: var(--green);
+  animation: cmPulse 1.8s infinite;
+  flex-shrink: 0;
+}
+@keyframes cmPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.45); }
+  70%  { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+.cm-live-text { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.cm-preview-spacer { flex: 1; }
+.cm-preview-hint { font-size: 11px; color: var(--text-quaternary); }
+
+.cm-device {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-page);
+  box-shadow: 0 10px 30px var(--shadow-color-strong);
+}
+.cm-chrome {
+  display: flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px;
+  background: #2596be;
+}
+.cm-chrome-dot { width: 8px; height: 8px; border-radius: 99px; background: rgba(255,255,255,.55); }
+.cm-chrome-url {
+  margin-left: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.16);
+  border-radius: 5px;
+  padding: 2px 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cm-device-body { padding: 18px; max-height: 70vh; overflow: auto; }
+
+.cm-page-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 10px; margin-bottom: 16px;
+}
+.cm-page-title { font-size: 20px; font-weight: 600; line-height: 1.2; word-break: break-word; }
+.cm-page-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+.cm-back {
+  font-size: 12px; color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px; padding: 6px 12px;
+  white-space: nowrap; background: var(--bg-card);
+}
+
+.cm-banner {
+  border: 1px solid var(--border-color);
+  border-top: 4px solid;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: var(--bg-subtle);
+}
+.cm-banner img { display: block; width: 100%; max-height: 160px; object-fit: cover; }
+.cm-banner-error {
+  border: 1px dashed var(--border-color);
+  border-top: 4px solid;
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  padding: 22px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-quaternary);
+  background: var(--bg-subtle);
+}
+
+.cm-pcard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+.cm-pdesc { font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; line-height: 1.5; }
+.cm-psec-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+.cm-psec-body { font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; line-height: 1.55; }
+.cm-plinks-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+.cm-plinks { display: flex; flex-wrap: wrap; gap: 8px; }
+.cm-plink {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 13px;
+  border: 1px solid;
+  border-radius: 99px;
+  background: var(--bg-card);
+  font-size: 12px; font-weight: 500;
+}
+.cm-pempty { text-align: center; padding: 30px 16px; font-size: 13px; color: var(--text-tertiary); }
+
+/* Responsiv: unter 980px untereinander, Vorschau nicht mehr klebend */
+@media (max-width: 980px) {
+  .cm-builder { grid-template-columns: 1fr; }
+  .cm-preview-sticky { position: static; }
+  .cm-device-body { max-height: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   [ADMIN-DASHBOARD REWORK] Health-Banner + Status-Verteilung. Additive
+   Regeln, theme-aware. Ergänzen die bestehenden .metric-* / .status-pill.
+   ════════════════════════════════════════════════════════════════════════ */
+
+.metric-card-hint { font-size: 11px; color: var(--text-tertiary); }
+
+.health-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+.health-banner .health-dot { width: 12px; height: 12px; border-radius: 999px; flex: none; }
+.health-ok  { background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.35); }
+.health-ok  .health-dot { background: #22c55e; }
+.health-bad { background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.40); }
+.health-bad .health-dot { background: #ef4444; }
+.health-title { font-weight: 700; font-size: 15px; color: var(--text-primary); }
+.health-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+.statusdist-bar {
+  display: flex;
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-subtle);
+  margin-bottom: 12px;
+}
+.statusdist-seg { height: 100%; }
+.statusdist-legend { display: flex; flex-wrap: wrap; gap: 14px; }
+.statusdist-item { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.statusdist-item .dot { width: 10px; height: 10px; border-radius: 999px; flex: none; }
+.statusdist-count { font-weight: 700; color: var(--text-primary); margin-left: 4px; }

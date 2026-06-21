@@ -1,6 +1,11 @@
 http://localhost:8080 {
     encode gzip zstd
 
+    # Gehashte Vite-Assets (Dateiname ändert sich bei jedem Build) dürfen aggressiv
+    # und unveränderlich gecacht werden → schnelle Folge-Ladezeiten, kein Re-Download.
+    @assets path /assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+
     root * ./frontend/dist
 
     handle /api/* {

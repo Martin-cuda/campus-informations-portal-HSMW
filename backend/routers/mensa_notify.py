@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session
 from datenbank import get_db
 from models.mensa_subscription import MensaSubscription
 # [Aktiviert: SendGrid-Mailer wie Jerome] 
-from services.mailer_sendgrid import send_mail, render_confirm_mail
+from services.mailer_sendgrid import send_mail, render_confirm_mail, mail_configured, last_send_error
 from services import mensa_scheduler
 from admin_guard import require_admin
 from admin_table import Admin
@@ -110,14 +110,23 @@ def subscribe(
     db.commit()
     db.refresh(sub)
 
-    # ── ARI [PERF: Ticket 1]: Bestätigungs-Mail in BackgroundTask schicken.
-    # SMTP-Versand kann bei Gmail 10-20s dauern; das blockt den User-Response
-    # nicht mehr -- Frontend kriegt sofort den 200er, Mail geht im Hintergrund.
+    # Bestätigungs-Mail JETZT senden und das Ergebnis zurückmelden, damit ein
+    # fehlgeschlagener oder "trockener" Versand nicht unsichtbar bleibt.
+    # (subscribe ist eine sync-Route → läuft im Threadpool, blockt den Loop nicht.)
     subject, text, html = render_confirm_mail(sub.email, sub.keyword, sub.token)
-    background_tasks.add_task(send_mail, sub.email, subject, text, html)
+    gesendet = send_mail(sub.email, subject, text, html)
+
+    if not mail_configured():
+        msg = ("Abo gespeichert. Der Mailversand läuft im Trockenmodus "
+               "(kein Anbieter konfiguriert) – die Mail steht nur im Backend-Log.")
+    elif gesendet:
+        msg = "Bestätigungs-Mail wurde versendet. Bitte E-Mail prüfen (auch den Spam-Ordner)."
+    else:
+        msg = (f"Abo gespeichert, aber die Bestätigungs-Mail ging nicht raus: "
+               f"{last_send_error()}.")
 
     return SubscribeOut(
-        message="Bestätigungs-Mail wurde versendet. Bitte E-Mail prüfen.",
+        message=msg,
         email=sub.email,
         keyword=sub.keyword,
         confirmed=sub.confirmed,
@@ -215,6 +224,32 @@ def run_now(_admin: Admin = Depends(require_admin)):
     """
     stats = mensa_scheduler.check_now(force=True)
     return {"triggered": True, **stats}
+
+
+@router.post("/test")
+def send_test_mail(email: EmailStr, _admin: Admin = Depends(require_admin)):
+    """
+    Schickt SOFORT eine Test-Mail an `email` und meldet das Ergebnis zurück.
+    Damit lässt sich der reine E-Mail-Versand unabhängig vom Abo-/Speiseplan-Flow
+    prüfen. Aufruf (als Admin):  POST /api/mensa/notify/test?email=du@example.com
+
+    Antwort:
+      configured = True  → SendGrid ist scharf (echter Versand)
+      dry_run    = True  → nur Log, kein echter Versand (Keys fehlen)
+      sent       = True  → send_mail meldet Erfolg
+    """
+    subject = "Test – HSMW Mensa-Benachrichtigung"
+    text = ("Das ist eine Test-Mail vom Campus-Portal. "
+            "Wenn du das liest, funktioniert der E-Mail-Versand.")
+    ok = send_mail(str(email), subject, text, f"<p>{text}</p>")
+    configured = mail_configured()
+    return {
+        "to":         str(email),
+        "configured": configured,
+        "dry_run":    not configured,
+        "sent":       bool(ok),
+        "reason":     last_send_error(),
+    }
 
 
 # ── kleines HTML-Template für Bestätigungs-/Unsubscribe-Seiten ───────────
