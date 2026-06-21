@@ -58,42 +58,70 @@ export default function Raumfinder() {
   const [filterBis, setFilterBis] = useState("");
   // nurFreie = wenn true, werden belegte Räume im Zeitslot ausgeblendet
   const [nurFreie, setNurFreie] = useState(false);
+  // ladeRaeume = true während die Räume eines angeklickten Hauses nachgeladen werden
+  const [ladeRaeume, setLadeRaeume] = useState(false);
 
 // Beim Laden der Seite: aktuelle Belegungen vom Backend holen
+// Beim Laden der Seite: nur die leichte Häuserliste holen (ohne Räume),
+// damit die Seite sofort startet statt auf alle 800+ Räume zu warten.
 useEffect(() => {
-  // Zuerst Häuser vom Backend holen
-  Promise.all([
-    fetch(`${API_URL}/api/haeuser/`).then((r) => r.json()),
-    fetch(`${API_URL}/api/raeume`).then((r) => r.json()),
-  ])
-    .then(([haeuserData, belegungenData]) => {
-      const belegungen = belegungenData.belegungen || {};
-      // Belegungen in die Häuser-Liste einpflegen
-      const haeuserMitBelegungen = haeuserData.map((h) => ({
-        ...h,
-        raeume: h.raeume.map((r) => {
-          const key = `${h.id}_${r.id}`;
-          const belegung = belegungen[key];
-          if (belegung) {
-            return { ...r, belegt: true, professor: belegung.professor, modul: belegung.modul, bis: belegung.bis };
-          }
-          return r;
-        }),
-      }));
-      setHaeuser(haeuserMitBelegungen);
+  fetch(`${API_URL}/api/haeuser/leicht`)
+    .then((r) => r.json())
+    .then((haeuserData) => {
+      // Räume werden erst beim Anklicken eines Hauses nachgeladen (Lazy Loading)
+      setHaeuser(haeuserData.map((h) => ({ ...h, raeume: null })));
     })
     .catch(() => console.warn("Backend nicht erreichbar"));
 }, []);
 
   // ── FABIAN: Handler (unverändert) ─────────────────────────────────────
   // Haus-Button angeklickt: Zeige Räume dieses Hauses, setze Raum-Auswahl zurück
-  const hausAnzeigen = (haus) => {
-    setAusgewaehltesHaus(haus);
+  // Haus-Button angeklickt: Räume dieses Hauses nachladen (falls noch nicht geladen),
+  // dann anzeigen. setAusgewaehltesRaum wird zurückgesetzt.
+  const hausAnzeigen = async (haus) => {
     setAusgewaehltesRaum(null);
+
+    // Räume schon geladen? Dann direkt anzeigen, kein erneuter Request nötig.
+    if (haus.raeume !== null) {
+      setAusgewaehltesHaus(haus);
+      return;
+    }
+
+    setAusgewaehltesHaus(haus);
+    setLadeRaeume(true);
+    try {
+      const [hausDaten, belegungenData] = await Promise.all([
+        fetch(`${API_URL}/api/haeuser/${haus.id}/raeume`).then((r) => r.json()),
+        fetch(`${API_URL}/api/raeume/`).then((r) => r.json()),
+      ]);
+      const belegungen = belegungenData.belegungen || {};
+      const raeumeMitBelegungen = hausDaten.raeume.map((r) => {
+        const key = `${haus.id}_${r.id}`;
+        const belegung = belegungen[key];
+        if (belegung) {
+          return { ...r, belegt: true, professor: belegung.professor, modul: belegung.modul, bis: belegung.bis };
+        }
+        return r;
+      });
+      const hausMitRaeumen = { ...haus, raeume: raeumeMitBelegungen };
+      // Im haeuser-State das Haus mit seinen jetzt geladenen Räumen aktualisieren,
+      // damit ein erneuter Klick auf dasselbe Haus nicht nochmal laden muss.
+      setHaeuser((prev) => prev.map((h) => (h.id === haus.id ? hausMitRaeumen : h)));
+      setAusgewaehltesHaus(hausMitRaeumen);
+    } catch (err) {
+      console.warn("Räume konnten nicht geladen werden:", err);
+    } finally {
+      setLadeRaeume(false);
+    }
   };
 
-  // Klick auf einen Raum: Zeige Details dieses Raums im Formular, fülle Formular mit aktuellen Werten
+ // Klick auf einen Raum: Zeige Details dieses Raums im Formular, fülle Formular mit aktuellen Werten.
+  // Klick auf den bereits ausgewählten Raum klappt die Detailbox wieder zu (Abwählen).
   const raumAnzeigen = (raum) => {
+    if (ausgewaehltesRaum?.id === raum.id) {
+      setAusgewaehltesRaum(null);
+      return;
+    }
     setAusgewaehltesRaum(raum);
     setFormular({ professor: raum.professor, modul: raum.modul, von: raum.von, bis: raum.bis });
   };
@@ -182,6 +210,15 @@ useEffect(() => {
           <div style={{ fontSize: 14, fontWeight: 600, color: "#64748b", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "IBM Plex Mono, monospace" }}>
             {ausgewaehltesHaus.name} – Räume
           </div>
+
+          {ladeRaeume && (
+            <div className="state-box">
+              <div className="state-box-text">Räume werden geladen…</div>
+            </div>
+          )}
+
+          {!ladeRaeume && ausgewaehltesHaus.raeume && (
+            <>
           {/* ── Filter-Leiste ─────────────────────────────────────── */}
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem", alignItems: "center" }} className="card">
             {/* Etagen-Filter */}
@@ -351,8 +388,10 @@ useEffect(() => {
                   </div>
                 )}
               </div>
-            ))}
+           ))}
           </div>
+            </>
+          )}
         </div>
       )}
     </div>
