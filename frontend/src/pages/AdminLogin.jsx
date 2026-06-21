@@ -59,6 +59,7 @@ export default function AdminLogin() {
         const data = await r.json();
         sessionStorage.setItem("token", data.access_token);
         sessionStorage.setItem("token_type", data.token_type);
+        sessionStorage.setItem("username", user);
         setSuccess(true);
         setTimeout(() => navigate("/"), 1200);
         return;
