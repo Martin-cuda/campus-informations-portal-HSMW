@@ -16,6 +16,7 @@ def create_admin(name: str, password: str, mail: str):
                           role = "secondary_admin", 
                           #alle rechte von Modulen werden erstmal als "False" deklariert
                           permissions = json.dumps(generate_default_permission()),
+                          last_password_reset_request = None,
                           mail = mail)
         db.add(new_admin)
         db.commit()
@@ -37,6 +38,7 @@ def create_admin_main(name: str, password: str, mail: str):
                           role = "primary_admin", 
                           #alle rechte von Modulen werden erstmal als "False" deklariert
                           permissions = json.dumps(generate_main_permission()),
+                          last_password_reset_request = None,
                           mail = mail)
         db.add(new_admin)
         db.commit()
