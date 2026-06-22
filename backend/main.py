@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers.mensa import router as mensa_router
 from routers.modules import router as modules_router
 from routers.kontakte import router as kontakte_router
+from routers.news import router as news_router
 
 # ── FABIAN: Raeume-Router ─────────────────────────────────
 from routers.raeume import router as raeume_router  
@@ -82,6 +83,7 @@ app.add_middleware(VisitLoggerMiddleware)
 app.include_router(mensa_router)    # MENSA ROUTER – Ari
 app.include_router(modules_router)  # MODULE ROUTER – Ari
 app.include_router(kontakte_router) # KONTAKTE ROUTER – Ari
+app.include_router(news_router)     # NEWS ROUTER
 
 # ── FABIAN: Router einbinden ─────────────────────────────────────────────────
 app.include_router(raeume_router)   # RAEUME ROUTER – Fabian

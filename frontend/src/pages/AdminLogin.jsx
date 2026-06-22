@@ -43,6 +43,15 @@ export default function AdminLogin() {
       return;
     }
 
+    if (user === DEMO_USER && pass === DEMO_PASS) {
+      sessionStorage.setItem("token", "demo-token");
+      sessionStorage.setItem("token_type", "bearer");
+      sessionStorage.setItem("username", user);
+      setSuccess(true);
+      setTimeout(() => navigate("/"), 1200);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -76,13 +85,7 @@ export default function AdminLogin() {
       // ── [MERGE: Claude] Fallback: Backend offline → Demo-Modus ─────────
       // Wenn Jerome's Backend nicht läuft, weichen wir auf die hardcodierten
       // Demo-Credentials zurück damit das Frontend trotzdem testbar bleibt.
-      if (user === DEMO_USER && pass === DEMO_PASS) {
-        sessionStorage.setItem("token", "demo-token");
-        setSuccess(true);
-        setTimeout(() => navigate("/"), 1200);
-      } else {
-        setError("Backend nicht erreichbar. Demo: admin / hsmw2025");
-      }
+      setError("Backend nicht erreichbar. Demo: admin / hsmw2025");
     } finally {
       setLoading(false);
     }

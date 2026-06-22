@@ -30,6 +30,11 @@ def get_current_user(
 ):
     token = credentials.credentials
 
+    # Demo-Fallback aus dem Frontend: Wenn der echte Login nicht genutzt wird,
+    # soll die Uni-Demo trotzdem geschuetzte Demo-Funktionen testen koennen.
+    if token == "demo-token":
+        return "demo-admin"
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload["sub"]
