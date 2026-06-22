@@ -6,7 +6,9 @@
 // werden, dafür braucht das Frontend keinen API-Call.
 // ──────────────────────────────────────────────────────────────────────────
 
-const API = "http://localhost:8000";
+// Relativ -> selber Origin: im Dev ueber den Vite-Proxy (/api -> 127.0.0.1:8000),
+// in Prod ueber den Caddy-Proxy. Kein hartes localhost:8000 (sonst kaputt beim Hosten).
+const API = "";
 
 /**
  * Legt ein neues Abo an (oder aktualisiert ein bestehendes auf der gleichen

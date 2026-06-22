@@ -29,8 +29,8 @@ from sqlalchemy.orm import Session
 
 from datenbank import get_db
 from models.mensa_subscription import MensaSubscription
-# [Aktiviert: SendGrid-Mailer wie Jerome] 
-from services.mailer_sendgrid import send_mail, render_confirm_mail, mail_configured, last_send_error
+# [Mensa-Mails laufen über Gmail-SMTP → services/mailer.py] 
+from services.mailer import send_mail, render_confirm_mail, mail_configured, last_send_error, frontend_base_url
 from services import mensa_scheduler
 from admin_guard import require_admin
 from admin_table import Admin
@@ -229,19 +229,18 @@ def run_now(_admin: Admin = Depends(require_admin)):
 @router.post("/test")
 def send_test_mail(email: EmailStr, _admin: Admin = Depends(require_admin)):
     """
-    Schickt SOFORT eine Test-Mail an `email` und meldet das Ergebnis zurück.
-    Damit lässt sich der reine E-Mail-Versand unabhängig vom Abo-/Speiseplan-Flow
-    prüfen. Aufruf (als Admin):  POST /api/mensa/notify/test?email=du@example.com
+    Schickt SOFORT eine Test-Mail an `email` und meldet das Ergebnis zurueck.
+    Aufruf (als Admin): POST /api/mensa/notify/test?email=du@example.com
 
     Antwort:
-      configured = True  → SendGrid ist scharf (echter Versand)
-      dry_run    = True  → nur Log, kein echter Versand (Keys fehlen)
-      sent       = True  → send_mail meldet Erfolg
+      configured = True  -> Gmail-SMTP ist scharf (echter Versand)
+      dry_run    = True  -> nur Log, kein echter Versand (Keys fehlen)
+      sent       = True  -> send_mail meldet Erfolg
     """
-    subject = "Test – HSMW Mensa-Benachrichtigung"
+    subject = "Test - HSMW Mensa-Benachrichtigung"
     text = ("Das ist eine Test-Mail vom Campus-Portal. "
             "Wenn du das liest, funktioniert der E-Mail-Versand.")
-    ok = send_mail(str(email), subject, text, f"<p>{text}</p>")
+    ok = send_mail(str(email), subject, text, "<p>" + text + "</p>")
     configured = mail_configured()
     return {
         "to":         str(email),
@@ -252,30 +251,16 @@ def send_test_mail(email: EmailStr, _admin: Admin = Depends(require_admin)):
     }
 
 
-# ── kleines HTML-Template für Bestätigungs-/Unsubscribe-Seiten ───────────
-
 def _inline_html(title: str, message: str) -> str:
-    return f"""\
-<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<title>{title} - bttrhsmw</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body {{ font-family: 'Open Sans', Arial, sans-serif; background: #f8fafc; color: #0f172a;
-          display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }}
-  .card {{ background:white; padding:32px 40px; border-radius:12px;
-           box-shadow:0 8px 24px rgba(0,0,0,.06); max-width:520px; }}
-  h1 {{ color:#2596be; margin-top:0; }}
-  a {{ color:#2596be; }}
-</style>
-</head>
-<body>
-  <div class="card">
-    <h1>{title}</h1>
-    <p>{message}</p>
-    <p><a href="/">&larr; Zurueck zum Campus-Portal</a></p>
-  </div>
-</body>
-</html>"""
+    return (
+        '<!doctype html><html lang="de"><head><meta charset="utf-8">'
+        '<title>' + title + ' - bttrhsmw</title>'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        "<style>body{font-family:'Open Sans',Arial,sans-serif;background:#f8fafc;"
+        "color:#0f172a;display:flex;align-items:center;justify-content:center;"
+        "min-height:100vh;margin:0;}.card{background:#fff;padding:32px 40px;"
+        "border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);max-width:520px;}"
+        "h1{color:#2596be;margin-top:0;}a{color:#2596be;}</style></head><body>"
+        '<div class="card"><h1>' + title + '</h1><p>' + message + '</p>'
+        '<p><a href="' + frontend_base_url() + '">&larr; Zurueck zum Campus-Portal</a></p></div></body></html>'
+    )

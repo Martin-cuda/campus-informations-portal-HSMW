@@ -29,8 +29,8 @@ from sqlalchemy.orm import Session
 
 from datenbank import SessionLocal
 from models.mensa_subscription import MensaSubscription
-# [Aktiviert: SendGrid-Mailer wie Jerome] 
-from services.mailer_sendgrid import send_mail, render_match_mail
+# [Mensa-Mails laufen über Gmail-SMTP → services/mailer.py] 
+from services.mailer import send_mail, render_match_mail
 
 
 log = logging.getLogger("ari.mensa_scheduler")
