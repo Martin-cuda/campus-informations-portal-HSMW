@@ -23,6 +23,7 @@ class NewsCreate(BaseModel):
     teaser: str = Field(min_length=1, max_length=600)
     body: str = Field(min_length=1)
     author: Optional[str] = Field(default="Campus-Portal Redaktion", max_length=80)
+    image: Optional[str] = None
 
 
 class NewsItem(NewsCreate):
@@ -50,6 +51,7 @@ def _seed_news() -> list[dict]:
                 ]
             ),
             "author": "Campus-Portal Redaktion",
+            "image": "/Campusfoto.jpg",
             "score": 42,
             "comments": [
                 {
@@ -102,6 +104,7 @@ def create_news(item: NewsCreate, user: str = Depends(get_current_user)):
         teaser=item.teaser,
         body=item.body,
         author=item.author or user,
+        image=item.image,
         score=1,
         comments=[],
     ).model_dump()

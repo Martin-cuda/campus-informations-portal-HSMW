@@ -17,6 +17,7 @@ import MensaLegende from "./pages/MensaLegende";
 import News from "./pages/News";
 import Kontakte from "./pages/Kontakte";
 import KontaktDetail from "./pages/KontaktDetail";
+import Faculties from "./pages/Faculties";
 import AdminLogin from "./pages/AdminLogin";
 import ModuleAdd from "./pages/ModuleAdd";
 import ComingSoon from "./pages/ComingSoon";
@@ -29,6 +30,73 @@ import "./index.css";
 
 // [MERGE: Claude] /raumfinder zu STATIC_PATHS hinzugefügt
 const STATIC_PATHS = new Set(["/mensa", "/news", "/kontakt", "/raumfinder"]);
+
+const CORE_MODULES = [
+  {
+    id: "news",
+    label: "Neuigkeiten",
+    icon: "",
+    path: "/news",
+    tag: "",
+    description: "Aktuelle Meldungen rund um die Hochschule.",
+    color: "#3b82f6",
+    banner: "",
+    sections: [],
+    links: [],
+    active: true,
+  },
+  {
+    id: "raumfinder",
+    label: "Raumfinder",
+    icon: "",
+    path: "/raumfinder",
+    tag: "",
+    description: "Übersicht aller Räume und Hörsäle auf dem Campus inkl. Belegung.",
+    color: "#3b82f6",
+    banner: "",
+    sections: [],
+    links: [],
+    active: true,
+  },
+  {
+    id: "mensa",
+    label: "Mensa",
+    icon: "",
+    path: "/mensa",
+    tag: "",
+    description: "Speiseplan der HSMW-Mensa.",
+    color: "#3b82f6",
+    banner: "",
+    sections: [],
+    links: [],
+    active: true,
+  },
+  {
+    id: "kontakt",
+    label: "Kontakte",
+    icon: "",
+    path: "/kontakt",
+    tag: "",
+    description: "Mitarbeiter-Verzeichnis der HSMW mit Suche, Foto, E-Mail und Durchwahl.",
+    color: "#3b82f6",
+    banner: "",
+    sections: [],
+    links: [],
+    active: true,
+  },
+];
+
+function withCoreModules(modules) {
+  const merged = new Map();
+  CORE_MODULES.forEach((mod) => merged.set(mod.id, mod));
+  modules
+    .filter((mod) => mod.active !== false)
+    .forEach((mod) => {
+      const fallback = merged.get(mod.id) || {};
+      merged.set(mod.id, { ...fallback, ...mod, active: mod.active !== false });
+    });
+  return Array.from(merged.values());
+}
 
 export default function App() {
   return (
@@ -166,7 +234,7 @@ function AppInner() {
   };
 
   // [MERGE] Aktive Module (Navigation/Startseite/Verwaltung) vs. archivierte
-  const allModules = extraModules.filter((m) => m.active !== false);
+  const allModules = withCoreModules(extraModules);
   const archivedModules = extraModules.filter((m) => m.active === false);
 
   return (
@@ -178,6 +246,7 @@ function AppInner() {
             <Route path="/mensa"         element={<Mensa />} />
             <Route path="/mensa/legende" element={<MensaLegende />} />
             <Route path="/news"          element={<News />} />
+            <Route path="/fakultaeten"    element={<Faculties />} />
             <Route path="/kontakt"                element={<Kontakte />} />
             <Route path="/kontakt/:nutzerkuerzel" element={<KontaktDetail />} />
             <Route path="/admin"         element={<AdminLogin />} />
@@ -195,6 +264,23 @@ function AppInner() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
+        <footer className="uchicago-footer" aria-label="Seitenabschluss">
+          <div className="uchicago-footer-inner">
+            <div className="uchicago-footer-brand">
+              <span>Hochschule Mittweida</span>
+              <strong>bttr hsmw</strong>
+            </div>
+
+            <nav className="uchicago-footer-links" aria-label="Fußnavigation">
+              <a href="https://www.hs-mittweida.de/">Hochschule</a>
+              <a href="https://www.hs-mittweida.de/newsampservice/kontakt/">Kontakt</a>
+              <a href="https://www.hs-mittweida.de/impressum/">Impressum</a>
+              <a href="https://www.hs-mittweida.de/datenschutz/">Datenschutz</a>
+            </nav>
+
+            <div className="uchicago-footer-meta">Campus Informationsportal · Version 0.2.0</div>
+          </div>
+        </footer>
       </div>
   );
 }

@@ -121,7 +121,7 @@ export default function Kontakte() {
   return (
     <div>
       {/* Header */}
-      <div className="page-header fade-up">
+      <div className="page-header module-header module-kontakte fade-up">
         <div className="page-title">Kontakte</div>
         <div className="page-subtitle">Mitarbeitende und Anlaufstellen · HS Mittweida</div>
       </div>

@@ -1,120 +1,77 @@
-// ── Navbar: Logo + Tab-Leiste + Theme-Toggle ──
 import { NavLink, Link } from "react-router-dom";
 
+const CONTACT_URL = "https://www.hs-mittweida.de/newsampservice/kontakt/";
+
 export default function Navbar({
-  modules,
   isAdmin,
   theme,
   onToggleTheme,
   onLogout,
-  username,
 }) {
   return (
-    <nav className="navbar-tabs">
-      {/* Logo */}
-      <Link to="/" className="navbar-logo">
-        <img
-          src="/hsmw-logo.png"
-          alt="HSMW Logo"
-          style={{ height: "22px", width: "auto" }}
-        />
-        <span className="navbar-logo-text">bttrhsmw</span>
-      </Link>
+    <header className="uchicago-shell-header">
+      <div className="uchicago-topbar" aria-label="Schnellnavigation">
+        <div className="uchicago-topbar-group">
+          <Link to="/news">NEUIGKEITEN</Link>
+          <Link to="/mensa">MENSA</Link>
+          <Link to="/raumfinder">RAUMFINDER</Link>
+          <Link to="/kontakt">KONTAKTE</Link>
+        </div>
+        <div className="uchicago-topbar-group uchicago-topbar-right">
+          <Link to="/">BESUCH</Link>
+          <a href={CONTACT_URL}>KONTAKT</a>
+          <Link to="/kontakt">VERZEICHNIS</Link>
+          <span className="uchicago-search" aria-hidden="true">Suche</span>
+        </div>
+      </div>
 
-      <span className="navbar-tabs-divider" />
+      <nav className="uchicago-mainnav" aria-label="Hauptnavigation">
+        <div className="uchicago-mainnav-side uchicago-mainnav-left">
+          <NavLink to="/" end className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
+            HOCHSCHULE
+          </NavLink>
+          <NavLink to="/news" className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
+            NEUIGKEITEN
+          </NavLink>
+          <NavLink to="/fakultaeten" className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
+            FAKULTÄTEN
+          </NavLink>
+          <NavLink to="/raumfinder" className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
+            RAUMFINDER
+          </NavLink>
+        </div>
 
-      {/* Navigation */}
-      <NavLink
-        to="/"
-        end
-        className={({ isActive }) =>
-          "navbar-tab" + (isActive ? " active" : "")
-        }
-      >
-        Startseite
-      </NavLink>
+        <Link to="/" className="uchicago-logo-card" aria-label="Hochschule Mittweida Startseite">
+          <img
+            src={theme === "dark" ? "/hsmw-logo-white.png" : "/hsmw-logo.png"}
+            alt="Hochschule Mittweida"
+          />
+        </Link>
 
-      {modules.map((mod) => (
-        <NavLink
-          key={mod.id}
-          to={mod.path}
-          className={({ isActive }) =>
-            "navbar-tab" + (isActive ? " active" : "")
-          }
-        >
-          {mod.label}
-        </NavLink>
-      ))}
-
-      <span className="navbar-tabs-spacer" />
-
-      {/* Theme Toggle */}
-      <button
-        type="button"
-        className="theme-toggle"
-        onClick={onToggleTheme}
-        title={
-          theme === "dark"
-            ? "Zu Light Mode wechseln"
-            : "Zu Dark Mode wechseln"
-        }
-        aria-label="Theme umschalten"
-      >
-        {theme === "dark" ? (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <circle cx="12" cy="12" r="4" />
-            <line x1="12" y1="2" x2="12" y2="4" />
-            <line x1="12" y1="20" x2="12" y2="22" />
-            <line x1="4.93" y1="4.93" x2="6.34" y2="6.34" />
-            <line x1="17.66" y1="17.66" x2="19.07" y2="19.07" />
-            <line x1="2" y1="12" x2="4" y2="12" />
-            <line x1="20" y1="12" x2="22" y2="12" />
-            <line x1="4.93" y1="19.07" x2="6.34" y2="17.66" />
-            <line x1="17.66" y1="6.34" x2="19.07" y2="4.93" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-          </svg>
-        )}
-      </button>
-
-      {/* Admin Bereich */}
-      {isAdmin && (
-        <>
-          <span
-            style={{
-              fontSize: "0.9rem",
-              color: "var(--text-secondary)",
-              marginRight: "0.75rem",
-            }}
-          >
-            Angemeldet als {username || "Admin"}
-          </span>
-
-          <Link to="/module-add" className="navbar-pill">
-            + Modul
+        <div className="uchicago-mainnav-side uchicago-mainnav-right">
+          <NavLink to="/mensa" className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
+            MENSA
+          </NavLink>
+          <a className="uchicago-navlink" href={CONTACT_URL}>KONTAKT</a>
+          <Link to={isAdmin ? "/admin/dashboard" : "/admin"} className="uchicago-give">
+            VERWALTUNG
           </Link>
-
-          <Link to="/admin/dashboard" className="navbar-pill">
-            Dashboard
-          </Link>
-
           <button
             type="button"
-            onClick={onLogout}
-            className="navbar-pill navbar-pill-ghost"
+            className="uchicago-theme-toggle"
+            onClick={onToggleTheme}
+            title={theme === "dark" ? "Zu Hellmodus wechseln" : "Zu Dunkelmodus wechseln"}
+            aria-label="Theme umschalten"
           >
-            Logout
+            {theme === "dark" ? "Hell" : "Dunkel"}
           </button>
-        </>
-      )}
-
-      {!isAdmin && (
-        <Link to="/admin" className="navbar-pill navbar-pill-ghost">
-          Admin
-        </Link>
-      )}
-    </nav>
+          {isAdmin && (
+            <button type="button" onClick={onLogout} className="uchicago-give uchicago-logout">
+              ABMELDEN
+            </button>
+          )}
+        </div>
+      </nav>
+    </header>
   );
 }

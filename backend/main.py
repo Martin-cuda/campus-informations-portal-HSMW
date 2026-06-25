@@ -1,9 +1,10 @@
-"""
+r"""
 Campus-Informationsportal – HS Mittweida
 Backend: FastAPI
 Team: Martin Weber, Jerome Martin, Ari Richter, Fabian Busse
 Modul: Informatik II
-
+ command zum start: cd C:\Users\Admin\IdeaProjects\campus-informations-portal-HSMW
+.\scripts\start-custom-domain.ps1
 [MERGE: Claude] Gegenüber Ari's original main.py wurden folgende Änderungen vorgenommen:
   1. Jerome's Auth-Router (routers/login_router.py) importiert und eingebunden.
   2. Startup-Event hinzugefügt (aus Jerome's main.py) der die Admin-Tabelle

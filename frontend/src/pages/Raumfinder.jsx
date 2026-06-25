@@ -172,7 +172,7 @@ useEffect(() => {
   return (
     <div>
       {/* [MERGE: Claude] page-header statt <h1> (konsistentes Layout) */}
-      <div className="page-header fade-up">
+      <div className="page-header module-header module-raumfinder fade-up">
         <div className="page-title">Raumfinder</div>
         <div className="page-subtitle">Gebäude & Belegungsstatus · HS Mittweida</div>
       </div>
@@ -189,7 +189,7 @@ useEffect(() => {
               fontSize: "14px",
               cursor: "pointer",
               backgroundColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--card)",
-              color: ausgewaehltesHaus?.id === haus.id ? "#fff" : "#374151",
+              color: ausgewaehltesHaus?.id === haus.id ? "#fff" : "var(--text-primary)",
               border: "1px solid",
               borderColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--border)",
               borderRadius: "var(--radius)",
@@ -207,7 +207,7 @@ useEffect(() => {
       {ausgewaehltesHaus && (
         <div className="fade-up">
           {/* [MERGE: Claude] <h2> durch page-subtitle-Style ersetzt */}
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#64748b", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "IBM Plex Mono, monospace" }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-muted)", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "IBM Plex Mono, monospace" }}>
             {ausgewaehltesHaus.name} – Räume
           </div>
 
@@ -223,7 +223,7 @@ useEffect(() => {
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem", alignItems: "center" }} className="card">
             {/* Etagen-Filter */}
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: 12, color: "#64748b" }}>Etage</label>
+              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Etage</label>
               <select
                 value={filterEtage}
                 onChange={(e) => setFilterEtage(e.target.value)}
@@ -240,7 +240,7 @@ useEffect(() => {
 
             {/* Zeitfilter Von */}
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: 12, color: "#64748b" }}>Von</label>
+              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Von</label>
               <input
                 type="time"
                 value={filterVon}
@@ -251,7 +251,7 @@ useEffect(() => {
 
             {/* Zeitfilter Bis */}
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: 12, color: "#64748b" }}>Bis</label>
+              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Bis</label>
               <input
                 type="time"
                 value={filterBis}
@@ -268,7 +268,7 @@ useEffect(() => {
                 checked={nurFreie}
                 onChange={(e) => setNurFreie(e.target.checked)}
               />
-              <label htmlFor="nurFreie" style={{ fontSize: 13, color: "#374151", cursor: "pointer" }}>
+              <label htmlFor="nurFreie" style={{ fontSize: 13, color: "var(--text-primary)", cursor: "pointer" }}>
                 Nur freie Räume anzeigen
               </label>
             </div>
@@ -276,7 +276,7 @@ useEffect(() => {
             {/* Filter zurücksetzen */}
             <button
               onClick={() => { setFilterEtage(""); setFilterVon(""); setFilterBis(""); setNurFreie(false); }}
-              style={{ marginTop: "16px", padding: "6px 12px", borderRadius: "var(--radius)", border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer", fontSize: 12 }}
+              style={{ marginTop: "16px", padding: "6px 12px", borderRadius: "var(--radius)", border: "1px solid var(--border)", background: "var(--card)", color: "var(--text-primary)", cursor: "pointer", fontSize: 12 }}
             >
               Filter zurücksetzen
             </button>
@@ -306,7 +306,7 @@ useEffect(() => {
                     color: "white",
                     fontWeight: "bold",
                     border: "3px solid",
-                    borderColor: ausgewaehltesRaum?.id === raum.id ? "var(--navy)" : "transparent",
+                    borderColor: ausgewaehltesRaum?.id === raum.id ? "var(--blue-hsmw)" : "transparent",
                     transition: "border-color 0.15s",
                   }}
                 >
@@ -318,21 +318,21 @@ useEffect(() => {
                 {/* Detailbereich direkt unter der angeklickten Kachel */}
                 {ausgewaehltesRaum?.id === raum.id && (
                   <div className="card" style={{ width: "300px", marginTop: "0.5rem" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "#0f172a", marginBottom: 14 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 14 }}>
                       {ausgewaehltesRaum.name}
                     </div>
                     {ausgewaehltesRaum.belegt ? (
                       <div>
-                        <p style={{ marginBottom: 6, fontSize: 14, color: "#374151" }}>
+                        <p style={{ marginBottom: 6, fontSize: 14, color: "var(--text-secondary)" }}>
                           <strong>Professor:</strong> {ausgewaehltesRaum.professor}
                         </p>
-                        <p style={{ marginBottom: 6, fontSize: 14, color: "#374151" }}>
+                        <p style={{ marginBottom: 6, fontSize: 14, color: "var(--text-secondary)" }}>
                           <strong>Modul:</strong> {ausgewaehltesRaum.modul}
                         </p>
-                        <p style={{ marginBottom: 6, fontSize: 14, color: "#374151" }}>
+                        <p style={{ marginBottom: 6, fontSize: 14, color: "var(--text-secondary)" }}>
                           <strong>Belegt von:</strong> {ausgewaehltesRaum.von} Uhr
                         </p>
-                        <p style={{ marginBottom: 12, fontSize: 14, color: "#374151" }}>
+                        <p style={{ marginBottom: 12, fontSize: 14, color: "var(--text-secondary)" }}>
                           <strong>Belegt bis:</strong> {ausgewaehltesRaum.bis} Uhr
                         </p>
                         <button
@@ -345,7 +345,7 @@ useEffect(() => {
                       </div>
                     ) : (
                       <div>
-                        <p style={{ marginBottom: 12, fontSize: 14, color: "#64748b" }}>
+                        <p style={{ marginBottom: 12, fontSize: 14, color: "var(--text-muted)" }}>
                           Dieser Raum ist aktuell frei.
                         </p>
                         <label className="login-label">Professor</label>

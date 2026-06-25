@@ -1,26 +1,34 @@
-// ──────────────────────────────────────────────────────────────────────────
-// Dashboard.jsx
-// Startseite der App: Begrüssung + Datum, anklickbare Info-Widgets mit
-// Live-Daten, Modul-Kacheln (Titel + Beschreibung) und Campusfoto.
-// ──────────────────────────────────────────────────────────────────────────
+﻿import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchNews } from "../api/news";
+import { FACULTIES } from "./Faculties";
 
-import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+const API = "";
+const TAG_KURZ_DE = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const MEALTYPE_LABELS = {
+  R: "Rind",
+  S: "Schwein",
+  G: "GeflÃƒÂ¼gel",
+  F: "Fisch",
+  L: "Lamm",
+  W: "Wild",
+  V: "Vegetarisch",
+  VG: "Vegan",
+  A: "Alkohol",
+  MI: "Mensa International",
+};
 
-// Kurzbeschreibungen für die bekannten Core-Module. Custom-Module fallen auf
-// eine generische Beschreibung zurück, da sie keine festen Texte haben.
-const MODUL_BESCHREIBUNG = {
-  mensa:      "Speiseplan ansehen",
-  raumfinder: "Freie Räume finden",
-  kontakt:    "Mitarbeitende finden",
-  news:       "Aktuelle Meldungen",
+const MODULE_TEXT = {
+  mensa: "Speiseplan ansehen",
+  raumfinder: "Freie RÃ¤ume finden",
+  kontakt: "Mitarbeitende finden",
+  news: "Aktuelle Meldungen",
 };
 
 function beschreibung(mod) {
-  return MODUL_BESCHREIBUNG[mod.id] || "Modul öffnen";
+  return MODULE_TEXT[mod.id] || "Modul Ã¶ffnen";
 }
 
-// Tageszeit-abhängige Begrüssung
 function begruessung() {
   const h = new Date().getHours();
   if (h < 11) return "Guten Morgen";
@@ -28,29 +36,83 @@ function begruessung() {
   return "Guten Abend";
 }
 
+function formatDate(value) {
+  if (!value) return "";
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString("de-DE", { day: "2-digit", month: "short" });
+}
+
+function tagesAnfang(date = new Date()) {
+  const x = new Date(date);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function isHeute(unixSek) {
+  if (!unixSek) return false;
+  const d = new Date(unixSek * 1000);
+  const h = new Date();
+  return d.getFullYear() === h.getFullYear() && d.getMonth() === h.getMonth() && d.getDate() === h.getDate();
+}
+
+function formatTagKurz(unixSek) {
+  if (!unixSek) return "?";
+  return TAG_KURZ_DE[new Date(unixSek * 1000).getDay()] || "?";
+}
+
+function formatDatumKurz(unixSek) {
+  if (!unixSek) return "";
+  const d = new Date(unixSek * 1000);
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function formatDatumLang(unixSek) {
+  if (!unixSek) return "";
+  const d = new Date(unixSek * 1000);
+  return d.toLocaleDateString("de-DE", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export default function Dashboard({ modules }) {
-  // ── Widget State ──────────────────────────────────────────────────────
   const [w, setW] = useState({
     mensaGerichte: null,
     mensaKategorien: null,
+    mensaDishes: [],
     raeumeFreie: null,
     raeumeGesamt: null,
     kontakteAnzahl: null,
+    latestNews: [],
   });
+  const [mensaTage, setMensaTage] = useState([]);
+  const [mensaAktivIdx, setMensaAktivIdx] = useState(null);
+  const [mensaPlanStatus, setMensaPlanStatus] = useState("loading");
+  const [mensaPlanError, setMensaPlanError] = useState("");
+  const mensaCarouselRef = useRef(null);
 
   useEffect(() => {
-    // Relativ → selber Origin über den Caddy-/api-Proxy: schnell, kein CORS und
-    // kein Hängen an einer fest verdrahteten localhost-Adresse (war der Bremser).
-    const API = "";
-
     fetch(`${API}/api/mensa/heute`)
       .then((r) => r.json())
       .then((data) => {
         const kategorien = data.kategorien || [];
-        const gerichte = kategorien.reduce((s, k) => s + (k.menus || []).length, 0);
-        setW((p) => ({ ...p, mensaGerichte: gerichte, mensaKategorien: kategorien.length }));
+        const menus = kategorien.flatMap((k) =>
+          (k.menus || []).map((menu) => ({
+            name: menu.name || menu.title || String(menu),
+            category: k.name || k.kategorie || "Mensa",
+          }))
+        );
+        setW((p) => ({
+          ...p,
+          mensaGerichte: menus.length,
+          mensaKategorien: kategorien.length,
+          mensaDishes: menus.slice(0, 3),
+        }));
       })
-      .catch(() => setW((p) => ({ ...p, mensaGerichte: "–" })));
+      .catch(() => setW((p) => ({ ...p, mensaGerichte: "-" })));
 
     fetch(`${API}/api/haeuser/`)
       .then((r) => r.json())
@@ -59,98 +121,288 @@ export default function Dashboard({ modules }) {
         const frei = raeume.filter((r) => !r.belegt).length;
         setW((p) => ({ ...p, raeumeFreie: frei, raeumeGesamt: raeume.length }));
       })
-      .catch(() => setW((p) => ({ ...p, raeumeFreie: "–" })));
+      .catch(() => setW((p) => ({ ...p, raeumeFreie: "-" })));
 
     fetch(`${API}/api/contacts/`)
       .then((r) => r.json())
       .then((data) => setW((p) => ({ ...p, kontakteAnzahl: data.count })))
-      .catch(() => setW((p) => ({ ...p, kontakteAnzahl: "–" })));
+      .catch(() => setW((p) => ({ ...p, kontakteAnzahl: "-" })));
+
+    fetchNews()
+      .then((items) => setW((p) => ({ ...p, latestNews: items.slice(0, 4) })))
+      .catch(() => setW((p) => ({ ...p, latestNews: [] })));
+
+    const ctrl = new AbortController();
+    fetch(`${API}/api/mensa/`, { signal: ctrl.signal })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        const heute0 = tagesAnfang();
+        const tageRaw = (Array.isArray(data?.tage) ? data.tage : [])
+          .filter((t) => new Date((t.datum_raw || 0) * 1000) >= heute0);
+
+        if (tageRaw.length === 0) {
+          setMensaPlanStatus("empty");
+          return;
+        }
+
+        setMensaTage(tageRaw);
+        setMensaAktivIdx(null);
+        setMensaPlanStatus("ok");
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setMensaPlanError(err.message || String(err));
+        setMensaPlanStatus("error");
+      });
+
+    return () => ctrl.abort();
   }, []);
 
+  const aktiverMensaTag = useMemo(
+    () => (mensaAktivIdx === null ? null : mensaTage[mensaAktivIdx] || null),
+    [mensaTage, mensaAktivIdx]
+  );
+
+  const focusMensaCard = (index) => {
+    const node = mensaCarouselRef.current;
+    if (!node) return;
+    const item = node.querySelector(`[data-day-index="${index}"]`);
+    item?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  };
+
+  const selectMensaDay = (index, allowToggle = true) => {
+    const nextIndex = Math.max(0, Math.min(index, mensaTage.length - 1));
+    if (allowToggle && mensaAktivIdx === nextIndex) {
+      setMensaAktivIdx(null);
+      return;
+    }
+    setMensaAktivIdx(nextIndex);
+    window.requestAnimationFrame(() => focusMensaCard(nextIndex));
+  };
+
+  const shiftMensaDay = (direction) => {
+    const fallbackIndex = direction > 0 ? 0 : mensaTage.length - 1;
+    selectMensaDay(mensaAktivIdx === null ? fallbackIndex : mensaAktivIdx + direction, false);
+  };
+
   const heuteLabel = new Date().toLocaleDateString("de-DE", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
-  // ── Anzeige-Werte (mit sauberen Zwischenständen statt Dauer-"...") ──
   const mensaWert =
-    w.mensaGerichte === null ? "…"
-    : w.mensaGerichte === "–" ? "Nicht erreichbar"
-    : w.mensaGerichte === 0 ? "Heute kein Plan"
-    : `${w.mensaGerichte} Gerichte heute`;
-  const mensaSub =
-    w.mensaKategorien ? `${w.mensaKategorien} Kategorien · Speiseplan ansehen` : "Speiseplan ansehen";
+    w.mensaGerichte === null ? "..."
+    : w.mensaGerichte === "-" ? "Nicht erreichbar"
+    : w.mensaGerichte === 0 ? "Kein Plan"
+    : `${w.mensaGerichte}`;
 
   const raeumeWert =
-    w.raeumeFreie === null ? "…"
-    : w.raeumeFreie === "–" ? "Nicht erreichbar"
-    : w.raeumeGesamt ? `${w.raeumeFreie} von ${w.raeumeGesamt} frei`
-    : `${w.raeumeFreie} Räume frei`;
+    w.raeumeFreie === null ? "..."
+    : w.raeumeFreie === "-" ? "Nicht erreichbar"
+    : `${w.raeumeFreie}/${w.raeumeGesamt || 0}`;
 
   const kontakteWert =
-    w.kontakteAnzahl === null ? "…"
-    : w.kontakteAnzahl === "–" ? "Nicht erreichbar"
-    : `${w.kontakteAnzahl} Einträge`;
+    w.kontakteAnzahl === null ? "..."
+    : w.kontakteAnzahl === "-" ? "Nicht erreichbar"
+    : `${w.kontakteAnzahl}`;
 
-  // Anklickbare Status-Karte (führt direkt ins jeweilige Modul)
-  const cardStyle = { textDecoration: "none", color: "inherit", display: "block" };
-  const subStyle = { fontSize: 12, color: "var(--text-tertiary)", marginTop: 6 };
+  const availability =
+    typeof w.raeumeFreie === "number" && w.raeumeGesamt
+      ? Math.max(0, Math.min(100, (w.raeumeFreie / w.raeumeGesamt) * 100))
+      : 0;
+
+  const moduleById = new Map(modules.map((mod) => [mod.id, mod]));
+  const newsModule = moduleById.get("news");
+  const raumfinderModule = moduleById.get("raumfinder");
+  const mensaModule = moduleById.get("mensa");
+  const kontaktModule = moduleById.get("kontakt");
+  const previewNews = [
+    ...w.latestNews,
+    {
+      id: "preview-campus",
+      title: "Campusleben in Mittweida",
+      teaser: "Einblick in aktuelle Projekte, Veranstaltungen und studentische Initiativen.",
+      category: "Campus",
+      image: "/Campusfoto.jpg",
+    },
+    {
+      id: "preview-studium",
+      title: "Neues aus Studium und Lehre",
+      teaser: "Informationen aus den FakultÃ¤ten, StudiengÃ¤ngen und Hochschulangeboten.",
+      category: "Studium",
+      image: "/Campusfoto.jpg",
+    },
+    {
+      id: "preview-forschung",
+      title: "Forschung an der HSMW",
+      teaser: "Aktuelle Themen aus Laboren, Instituten und Forschungsprojekten.",
+      category: "Forschung",
+      image: "/Campusfoto.jpg",
+    },
+    {
+      id: "preview-service",
+      title: "Service und Termine",
+      teaser: "Wichtige Hinweise fÃ¼r Studierende, Mitarbeitende und GÃ¤ste der Hochschule.",
+      category: "Service",
+      image: "/Campusfoto.jpg",
+    },
+  ].slice(0, 4);
 
   return (
-    <div>
-      {/* Begrüssung + Datum */}
-      <div className="page-header fade-up">
-        <div className="page-title">{begruessung()}</div>
-        <div className="page-subtitle" style={{ textTransform: "capitalize" }}>{heuteLabel}</div>
-      </div>
+    <div className="dashboard-page uchicago-home">
+      <section className="uchicago-hero" aria-label="Startseite">
+        <div className="uchicago-play" aria-hidden="true">â–·</div>
+        <div className="uchicago-placeholder-panel">
+          <h1>Platzhalter</h1>
+        </div>
+      </section>
 
-      {/* Info-Widgets – jetzt anklickbar und mit Kontext */}
-      <div className="card-grid" style={{ marginBottom: 28 }}>
-        <Link to="/mensa" className="status-card fade-up" style={cardStyle}>
-          <div style={{ width: "100%", height: 3, background: "#2596be", borderRadius: 2, marginBottom: 10 }} />
-          <div className="status-card-label">Mensa</div>
-          <div className="status-card-value" style={{ color: "#2596be" }}>{mensaWert}</div>
-          <div style={subStyle}>{mensaSub} ›</div>
-        </Link>
+      <nav className="faculty-strip" aria-label="FakultÃ¤ten">
+        {FACULTIES.map((faculty) => (
+          <a
+            key={faculty.id}
+            href={faculty.url}
+            className="faculty-strip-item"
+            style={{ "--faculty-color": faculty.color }}
+          >
+            {faculty.label}
+          </a>
+        ))}
+      </nav>
 
-        <Link to="/raumfinder" className="status-card fade-up" style={cardStyle}>
-          <div style={{ width: "100%", height: 3, background: "#22c55e", borderRadius: 2, marginBottom: 10 }} />
-          <div className="status-card-label">Raumfinder</div>
-          <div className="status-card-value" style={{ color: "#22c55e" }}>{raeumeWert}</div>
-          <div style={subStyle}>Freie Räume anzeigen ›</div>
-        </Link>
+      <section className="home-news-preview" aria-label="Aktuelle Meldungen">
+        <div className="latest-news-title">
+          <h2>AKTUELLE MELDUNGEN</h2>
+          <span />
+        </div>
+        <div className="home-news-grid">
+          {previewNews.map((item) => (
+            <Link to="/news" className="home-news-card" key={item.id || item.title}>
+              <div className="home-news-image">
+                <img src={item.image || "/Campusfoto.jpg"} alt="" />
+              </div>
+              <div className="home-news-body">
+                <h3>{item.title}</h3>
+                <p>{item.teaser || item.category || "Aktuelle Meldung der Hochschule Mittweida"}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+        <Link to="/news" className="home-news-more">Weitere Meldungen ansehen</Link>
+      </section>
 
-        <Link to="/kontakt" className="status-card fade-up" style={cardStyle}>
-          <div style={{ width: "100%", height: 3, background: "#8b5cf6", borderRadius: 2, marginBottom: 10 }} />
-          <div className="status-card-label">Kontakte</div>
-          <div className="status-card-value" style={{ color: "#8b5cf6" }}>{kontakteWert}</div>
-          <div style={subStyle}>Verzeichnis öffnen ›</div>
-        </Link>
-      </div>
+      <section className="home-mensa-preview" aria-label="Mensa Speiseplan">
+        <div className="latest-news-title">
+          <h2>MENSA</h2>
+          <span />
+        </div>
 
-      {/* Module-Kacheln links + Campusfoto rechts */}
-      <div className="dashboard-main-grid fade-up">
-
-        <div>
-          <div className="module-tile-grid">
-            {modules.map((mod) => (
-              <Link to={mod.path} key={mod.id} className="module-tile-row">
-                <div className="module-tile-row-text">
-                  <div className="module-tile-row-title">{mod.label}</div>
-                  <div className="module-tile-row-sub" style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>
-                    {beschreibung(mod)}
-                  </div>
-                </div>
-                <span className="module-tile-row-arrow">›</span>
-              </Link>
-            ))}
+        {mensaPlanStatus === "loading" && (
+          <div className="state-box">
+            <div className="state-box-text">Speiseplan wird geladen...</div>
           </div>
-        </div>
+        )}
 
-        <div className="dashboard-photo">
-          <img src="/Campusfoto.jpg" alt="Campus HS Mittweida" decoding="async" />
-        </div>
+        {mensaPlanStatus === "error" && (
+          <div className="state-box">
+            <div className="state-box-text">
+              Speiseplan konnte nicht geladen werden.
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{mensaPlanError}</div>
+            </div>
+          </div>
+        )}
 
-      </div>
+        {mensaPlanStatus === "empty" && (
+          <div className="state-box">
+            <div className="state-box-text">Aktuell ist kein Speiseplan verfÃƒÂ¼gbar.</div>
+          </div>
+        )}
+
+        {mensaPlanStatus === "ok" && (
+          <>
+            <div className="day-carousel-shell home-day-carousel">
+              <button type="button" className="day-carousel-control" onClick={() => shiftMensaDay(-1)} aria-label="Vorherige Tage" />
+              <div className="day-carousel" ref={mensaCarouselRef} aria-label="Tage im Speiseplan">
+                <div className="day-tabs">
+                  {mensaTage.map((tag, index) => {
+                    const heute = isHeute(tag.datum_raw);
+                    const aktiv = index === mensaAktivIdx;
+                    const label = formatTagKurz(tag.datum_raw);
+                    return (
+                      <button
+                        key={tag.datum_raw ?? index}
+                        data-day-index={index}
+                        data-day-label={label}
+                        className={"day-tab" + (aktiv ? " active" : "")}
+                        onClick={() => selectMensaDay(index)}
+                      >
+                        <span className="day-tab-name">{label}</span>
+                        <span className="day-tab-date">{formatDatumKurz(tag.datum_raw)}</span>
+                        {heute && <span className="day-tab-pill">heute</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <button type="button" className="day-carousel-control" onClick={() => shiftMensaDay(1)} aria-label="NÃƒÂ¤chste Tage" />
+            </div>
+
+            {aktiverMensaTag && (
+              <div className="home-mensa-menu">
+                <div className="day-header">{formatDatumLang(aktiverMensaTag.datum_raw)}</div>
+
+                {(aktiverMensaTag.kategorien || []).length === 0 && (
+                  <div className="state-box">
+                    <div className="state-box-text">FÃƒÂ¼r diesen Tag gibt es keinen Speiseplan.</div>
+                  </div>
+                )}
+
+                {(aktiverMensaTag.kategorien || []).map((kat, ki) => (
+                  <section key={ki} className="meal-section">
+                    <div className="meal-section-title">{kat.titel || "Speisen"}</div>
+                    <div className="meal-grid">
+                      {(kat.menus || []).map((meal, mi) => {
+                        const aktiv = meal.active !== false;
+                        return (
+                          <div className={"meal-card" + (aktiv ? "" : " meal-card-unavailable")} key={meal.id ?? mi} aria-disabled={!aktiv}>
+                            <div className="meal-name">{meal.name || "Unbekanntes Gericht"}</div>
+                            {meal.beschreibung && <div className="meal-meta">{meal.beschreibung}</div>}
+                            {meal.preis && <div className="meal-price">{meal.preis}</div>}
+
+                            <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              {aktiv ? (
+                                (meal.mealtypes || []).map((mt, ti) => {
+                                  const code = String(mt);
+                                  const label = MEALTYPE_LABELS[code];
+                                  return (
+                                    <span key={ti} className="badge badge-gray" title={label || code}>
+                                      {code}
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                <span className="badge badge-gray" style={{ background: "#e2e8f0", color: "#475569", fontWeight: 600 }}>
+                                  Nicht verfÃƒÂ¼gbar
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
     </div>
   );
 }
