@@ -34,8 +34,11 @@ def smtp_configured():
     return mail_configured()
 
 
-def public_base_url():
-    return _env("PUBLIC_BASE_URL", "http://localhost:8000")
+def public_base_url(request=None):
+    # Request-bewusst: leitet die Backend-Basis-URL fuer Mail-Links zur Laufzeit
+    # ab (siehe base_urls.py). Ohne Request/ohne ENV -> localhost-Default (Dev).
+    import base_urls
+    return base_urls.public_base_url(request)
 
 
 def last_send_error():
@@ -94,8 +97,8 @@ def send_mail(to, subject, body_text, body_html=None):
         return False
 
 
-def render_confirm_mail(email, keyword, token):
-    base = public_base_url()
+def render_confirm_mail(email, keyword, token, request=None):
+    base = public_base_url(request)
     confirm_url = base + "/api/mensa/notify/confirm?token=" + token
     unsub_url = base + "/api/mensa/notify/unsubscribe?token=" + token
     subject = 'Bitte bestaetigen: Mensa-Benachrichtigung fuer "' + keyword + '"'
@@ -113,8 +116,8 @@ def render_confirm_mail(email, keyword, token):
     return subject, text, html
 
 
-def render_match_mail(email, keyword, dishes, token, date_label):
-    base = public_base_url()
+def render_match_mail(email, keyword, dishes, token, date_label, request=None):
+    base = public_base_url(request)
     unsub_url = base + "/api/mensa/notify/unsubscribe?token=" + token
     subject = 'Heute auf dem Speiseplan: "' + keyword + '" - HSMW Mensa'
     bullets = "\n".join("  - " + d for d in dishes) or "  - (kein Detail)"
@@ -129,5 +132,6 @@ def render_match_mail(email, keyword, dishes, token, date_label):
     return subject, text, html
 
 
-def frontend_base_url():
-    return _env("FRONTEND_BASE_URL", "http://localhost:5173")
+def frontend_base_url(request=None):
+    import base_urls
+    return base_urls.frontend_base_url(request)

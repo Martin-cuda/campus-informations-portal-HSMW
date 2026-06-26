@@ -1,7 +1,20 @@
 [
   {
+    "id": "hochschule",
+    "label": "Hochschule",
+    "icon": "",
+    "path": "/",
+    "tag": "",
+    "description": "Startseite des Campus-Portals der HS Mittweida.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": [],
+    "active": true
+  },
+  {
     "id": "news",
-    "label": "News",
+    "label": "Neuigkeiten",
     "icon": "",
     "path": "/news",
     "tag": "",
@@ -9,7 +22,21 @@
     "color": "#3b82f6",
     "banner": "",
     "sections": [],
-    "links": []
+    "links": [],
+    "active": true
+  },
+  {
+    "id": "fakultaeten",
+    "label": "Fakultäten",
+    "icon": "",
+    "path": "/fakultaeten",
+    "tag": "",
+    "description": "Überblick über die Fakultäten und Institute der HSMW.",
+    "color": "#3b82f6",
+    "banner": "",
+    "sections": [],
+    "links": [],
+    "active": true
   },
   {
     "id": "raumfinder",
@@ -21,7 +48,8 @@
     "color": "#3b82f6",
     "banner": "",
     "sections": [],
-    "links": []
+    "links": [],
+    "active": true
   },
   {
     "id": "mensa",
@@ -33,7 +61,8 @@
     "color": "#3b82f6",
     "banner": "",
     "sections": [],
-    "links": []
+    "links": [],
+    "active": true
   },
   {
     "id": "kontakt",
@@ -45,6 +74,30 @@
     "color": "#3b82f6",
     "banner": "",
     "sections": [],
-    "links": []
+    "links": [],
+    "active": true
+  },
+  {
+    "id": "custom-sport",
+    "label": "Sport",
+    "icon": "",
+    "path": "/sport",
+    "tag": "Eigenes Modul",
+    "description": "Sport ist egsund furbein und haut",
+    "color": "#000000",
+    "banner": "",
+    "sections": [
+      {
+        "title": "Sportkalender",
+        "body": "---Mo 12-14\n---Di   13-15\n---Do  16-17"
+      }
+    ],
+    "links": [
+      {
+        "label": "Anmeldung",
+        "url": "Keine Eier"
+      }
+    ],
+    "active": true
   }
 ]

@@ -13,6 +13,8 @@ Modul: Informatik II
   4. CORS-Origins um localhost:5174 ergänzt (Fallback falls Vite anderen Port nimmt).
 """
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -66,11 +68,33 @@ def shutdown():
     mensa_scheduler.stop()
 
 
-# ── ARI: CORS-Middleware ──────────────────────────────────────────────────
+# ── ARI: CORS-Middleware (ENV-gesteuert, sicher) ──────────────────────────
+# Erlaubte Origins kommen aus der ENV-Variable CORS_ORIGINS (komma-separiert).
+# Ist sie nicht gesetzt, gelten die bekannten Dev-/Prod-Origins als Default.
+# Beim Hosting einfach die echte Domain ergaenzen, z.B.:
+#   CORS_ORIGINS=https://portal.example.de,https://www.portal.example.de
+# Optional CORS_ORIGIN_REGEX fuer dynamische Preview-Domains (z.B. ^https://.*\.vercel\.app$).
+# WICHTIG (Security): allow_credentials=True -> KEINE Wildcard "*" verwenden
+# (mit Credentials ist "*" weder erlaubt noch sicher). Darum explizite Allowlist.
+_DEFAULT_CORS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:8080",
+    "https://bttrhsmw-b3b60.web.app",
+    "https://bttrhsmw-b3b60.firebaseapp.com",
+    "https://definitvnichtcheck24.xyz",  # Cloudflare-Tunnel-Domain (Live-Hosting)
+]
+_cors_env = (os.getenv("CORS_ORIGINS") or "").strip()
+_cors_origins = (
+    [o.strip().rstrip("/") for o in _cors_env.split(",") if o.strip()]
+    if _cors_env else _DEFAULT_CORS
+)
+_cors_regex = (os.getenv("CORS_ORIGIN_REGEX") or "").strip() or None
+
 app.add_middleware(
     CORSMiddleware,
-    # [MERGE: Claude] :5174 als Fallback ergänzt (Vite wählt manchmal Alternativ-Port)
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "https://bttrhsmw-b3b60.web.app", "https://bttrhsmw-b3b60.firebaseapp.com"],
+    allow_origins=_cors_origins,
+    allow_origin_regex=_cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

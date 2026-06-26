@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import NewsTicker from "./components/NewsTicker";
 import Dashboard from "./pages/Dashboard";
 import Mensa from "./pages/Mensa";
 import MensaLegende from "./pages/MensaLegende";
@@ -29,9 +30,22 @@ import { fetchExtraModules, persistExtraModule, deleteExtraModule, reorderExtraM
 import "./index.css";
 
 // [MERGE: Claude] /raumfinder zu STATIC_PATHS hinzugefügt
-const STATIC_PATHS = new Set(["/mensa", "/news", "/kontakt", "/raumfinder"]);
+const STATIC_PATHS = new Set(["/", "/mensa", "/news", "/kontakt", "/raumfinder", "/fakultaeten"]);
 
 const CORE_MODULES = [
+  {
+    id: "hochschule",
+    label: "Hochschule",
+    icon: "",
+    path: "/",
+    tag: "",
+    description: "Startseite des Campus-Portals der HS Mittweida.",
+    color: "#3b82f6",
+    banner: "",
+    sections: [],
+    links: [],
+    active: true,
+  },
   {
     id: "news",
     label: "Neuigkeiten",
@@ -39,6 +53,19 @@ const CORE_MODULES = [
     path: "/news",
     tag: "",
     description: "Aktuelle Meldungen rund um die Hochschule.",
+    color: "#3b82f6",
+    banner: "",
+    sections: [],
+    links: [],
+    active: true,
+  },
+  {
+    id: "fakultaeten",
+    label: "Fakultäten",
+    icon: "",
+    path: "/fakultaeten",
+    tag: "",
+    description: "Überblick über die Fakultäten und Institute der HSMW.",
     color: "#3b82f6",
     banner: "",
     sections: [],
@@ -86,16 +113,27 @@ const CORE_MODULES = [
   },
 ];
 
+// [FIX Claude] Reihenfolge kommt jetzt aus der persistierten Modul-Liste
+// (vom Backend, per Sortieren steuerbar). Kernmodule liefern nur noch die
+// Standardwerte (Label/Pfad/Farbe) als Fallback. Dadurch wirkt das Sortieren
+// in der Modul-Verwaltung wirklich – auch für die Kernmodule.
 function withCoreModules(modules) {
-  const merged = new Map();
-  CORE_MODULES.forEach((mod) => merged.set(mod.id, mod));
+  const coreById = new Map(CORE_MODULES.map((mod) => [mod.id, mod]));
+  const result = [];
+  const seen = new Set();
+  // 1) Persistierte Module in gespeicherter Reihenfolge (das Sortieren steuert das)
   modules
     .filter((mod) => mod.active !== false)
     .forEach((mod) => {
-      const fallback = merged.get(mod.id) || {};
-      merged.set(mod.id, { ...fallback, ...mod, active: mod.active !== false });
+      const base = coreById.get(mod.id) || {};
+      result.push({ ...base, ...mod, active: mod.active !== false });
+      seen.add(mod.id);
     });
-  return Array.from(merged.values());
+  // 2) Kernmodule, die (noch) nicht gespeichert sind, hinten in Standard-Reihenfolge anhängen
+  CORE_MODULES.forEach((mod) => {
+    if (!seen.has(mod.id)) result.push(mod);
+  });
+  return result;
 }
 
 export default function App() {
@@ -239,6 +277,7 @@ function AppInner() {
 
   return (
       <div className="app-shell">
+        <NewsTicker />
         <Navbar modules={allModules} isAdmin={isAdmin} theme={theme} onToggleTheme={toggleTheme} onLogout={handleLogout} />
         <main className="main-content">
           <Routes>

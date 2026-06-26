@@ -1,7 +1,5 @@
 import { NavLink, Link } from "react-router-dom";
 
-const CONTACT_URL = "https://www.hs-mittweida.de/newsampservice/kontakt/";
-
 export default function Navbar({
   isAdmin,
   theme,
@@ -10,21 +8,6 @@ export default function Navbar({
 }) {
   return (
     <header className="uchicago-shell-header">
-      <div className="uchicago-topbar" aria-label="Schnellnavigation">
-        <div className="uchicago-topbar-group">
-          <Link to="/news">NEUIGKEITEN</Link>
-          <Link to="/mensa">MENSA</Link>
-          <Link to="/raumfinder">RAUMFINDER</Link>
-          <Link to="/kontakt">KONTAKTE</Link>
-        </div>
-        <div className="uchicago-topbar-group uchicago-topbar-right">
-          <Link to="/">BESUCH</Link>
-          <a href={CONTACT_URL}>KONTAKT</a>
-          <Link to="/kontakt">VERZEICHNIS</Link>
-          <span className="uchicago-search" aria-hidden="true">Suche</span>
-        </div>
-      </div>
-
       <nav className="uchicago-mainnav" aria-label="Hauptnavigation">
         <div className="uchicago-mainnav-side uchicago-mainnav-left">
           <NavLink to="/" end className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
@@ -52,7 +35,14 @@ export default function Navbar({
           <NavLink to="/mensa" className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
             MENSA
           </NavLink>
-          <a className="uchicago-navlink" href={CONTACT_URL}>KONTAKT</a>
+          <NavLink to="/kontakt" className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
+            KONTAKTE
+          </NavLink>
+          {isAdmin && (
+            <NavLink to="/module-add" className={({ isActive }) => "uchicago-navlink" + (isActive ? " active" : "")}>
+              MODULE
+            </NavLink>
+          )}
           <Link to={isAdmin ? "/admin/dashboard" : "/admin"} className="uchicago-give">
             VERWALTUNG
           </Link>

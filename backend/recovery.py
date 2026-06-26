@@ -11,6 +11,7 @@ from admin_table import Admin
 from reset_attempts_table import PasswordResetAttempt
 from pydantic import BaseModel
 from mail_service import send_reset_email
+from base_urls import frontend_base_url
 
 
 load_dotenv()
@@ -319,7 +320,8 @@ async def forgot_password(
     background_tasks.add_task(
         send_reset_email,
         user.mail,
-        token
+        token,
+        frontend_base_url(request)   # Reset-Link auf die real genutzte Domain (hosting-fest)
     )
 
 

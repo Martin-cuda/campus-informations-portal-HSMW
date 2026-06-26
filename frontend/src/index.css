@@ -4275,6 +4275,10 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  /* [Claude] Platz fuer den nach oben ueberstehenden Logo-Card (top:-21px),
+     damit das Logo beim Runterscrollen (sticky) nicht oben abgeschnitten wird.
+     Schlank gehalten, damit die weisse Leiste nicht zu dick wirkt. */
+  padding-top: 26px;
   background: var(--uchicago-white);
   color: var(--uchicago-ink);
 }
@@ -4366,7 +4370,7 @@ body {
 .uchicago-logo-card {
   position: absolute;
   left: 50%;
-  top: -42px;
+  top: -21px;
   width: 302px;
   min-height: 120px;
   transform: translateX(-50%);
@@ -4374,11 +4378,23 @@ body {
   align-items: center;
   justify-content: center;
   padding: 18px 26px 28px;
-  background: #ffffff;
-  border-left: 1px solid var(--uchicago-line);
-  border-right: 1px solid var(--uchicago-line);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.16);
+  /* [Claude] Duenner Rand entlang der GANZEN Wimpel-Form (inkl. schraeger Spitze):
+     Karte = Randfarbe, die weisse Fuellung kommt per ::before (1.5px kleiner).
+     Eine normale border bzw. ein drop-shadow-Rand wird von clip-path weggeschnitten. */
+  background: #a9b0ba;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.16);
   clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
+}
+.uchicago-logo-card::before {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  background: #ffffff;
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
+}
+.uchicago-logo-card img {
+  position: relative;
+  z-index: 1;
 }
 
 .uchicago-logo-card img {
@@ -5270,6 +5286,18 @@ body {
   z-index: 1;
 }
 
+/* [Claude] HEUTE-Badge: Die Regel oben (>span: position:relative) hob die
+   absolute Position der Pille auf, dadurch lag "heute" halb auf dem Datum.
+   Hier wieder als eigenes Pill etwas weiter unten, klar unter dem Datum. */
+.day-carousel .day-tab .day-tab-pill {
+  position: static;
+  top: auto;
+  right: auto;
+  margin-top: 7px;
+  align-self: flex-start;
+  z-index: 2;
+}
+
 .day-carousel .day-tab.active,
 .day-carousel .day-tab:hover {
   z-index: 10;
@@ -5282,6 +5310,19 @@ body {
   background:
     linear-gradient(135deg, #ffffff, #eef6ff),
     repeating-linear-gradient(0deg, rgba(0,95,184,0.08) 0 1px, transparent 1px 18px);
+}
+
+/* [Claude] Die aktive/heutige Karte hat dieselbe Transform wie der Hover und
+   wirkte dadurch beim Druebergehen steif/tot. Jetzt wippt sie beim Hover sanft. */
+@keyframes dayTabBob {
+  0%, 100% { transform: rotate(0deg) translateY(-16px) scale(1.08); }
+  50%      { transform: rotate(0deg) translateY(-20px) scale(1.082); }
+}
+.day-carousel .day-tab.active:hover {
+  animation: dayTabBob 1.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .day-carousel .day-tab.active:hover { animation: none; }
 }
 
 .day-carousel-control {
@@ -5412,10 +5453,11 @@ a,
 }
 
 [data-theme="dark"] .uchicago-logo-card {
+  background: #4d4d4d;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.42);
+}
+[data-theme="dark"] .uchicago-logo-card::before {
   background: #242424;
-  border-left-color: #3a3a3a;
-  border-right-color: #3a3a3a;
-  box-shadow: 0 2px 18px rgba(0, 0, 0, 0.38);
 }
 
 .faculty-strip-item {
@@ -5559,4 +5601,216 @@ a,
   .uchicago-footer-links {
     grid-template-columns: 1fr;
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   [FIX Claude] Nav-Sichtbarkeit + Mensa-Darkmode
+   Bewusst ans Dateiende gehaengt, damit diese Regeln die vielen vorherigen
+   (teils widerspruechlichen) Regeln im Cascade zuverlaessig gewinnen.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Navigationslinks: klar sichtbarer Hover-/Aktiv-Zustand (graues Pill) ── */
+.uchicago-navlink {
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background-color .15s ease, color .15s ease;
+}
+.uchicago-navlink:hover {
+  text-decoration: none;
+  background: rgba(100, 116, 139, 0.14);
+}
+.uchicago-navlink.active {
+  background: rgba(100, 116, 139, 0.16);
+  color: var(--hsmw-blue, #2563eb);
+  font-weight: 600;
+}
+
+/* ── Mensa: sauberer Darkmode (Karten, Tabs, Header, Badges) ── */
+[data-theme="dark"] .meal-card {
+  background: var(--bg-card, #1a1f29);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  color: var(--text-primary, #f1f5f9);
+}
+[data-theme="dark"] .meal-name  { color: var(--text-primary, #f1f5f9); }
+[data-theme="dark"] .meal-meta  { color: var(--text-secondary, #cbd5e1); }
+[data-theme="dark"] .meal-price { color: var(--text-primary, #f1f5f9); }
+[data-theme="dark"] .meal-section-title { color: var(--text-primary, #f1f5f9); }
+[data-theme="dark"] .day-header { color: var(--text-secondary, #cbd5e1); }
+[data-theme="dark"] .day-tab {
+  background: var(--bg-subtle, #232932);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  color: var(--text-secondary, #cbd5e1);
+}
+[data-theme="dark"] .day-tab:hover { background: var(--bg-card-hover, #20262f); }
+[data-theme="dark"] .day-tab.active {
+  background: var(--hsmw-blue, #2563eb);
+  border-color: var(--hsmw-blue, #2563eb);
+  color: #fff;
+}
+[data-theme="dark"] .day-tab.active .day-tab-name,
+[data-theme="dark"] .day-tab.active .day-tab-date { color: rgba(255,255,255,0.85); }
+[data-theme="dark"] .badge,
+[data-theme="dark"] .badge-gray {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-secondary, #cbd5e1);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+/* ── "Nicht verfuegbar"-Badge: themefaehig statt hardcodierter Inline-Farben ── */
+.badge-unavailable { background: #e2e8f0; color: #475569; font-weight: 600; }
+[data-theme="dark"] .badge-unavailable { background: rgba(255,255,255,0.10); color: var(--text-secondary, #cbd5e1); }
+
+/* ── [FIX Claude] Startseite: "Weitere Angebote" (eigene/zugebuchte Module) ── */
+.home-modules-preview {
+  padding: 48px clamp(24px, 8vw, 150px) 58px;
+}
+.home-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.home-module-card {
+  display: block;
+  padding: 22px 22px 24px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-left: 4px solid var(--mod-color, #3b82f6);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text-primary, #0f172a);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.home-module-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+}
+.home-module-icon { font-size: 26px; display: block; margin-bottom: 8px; line-height: 1; }
+.home-module-card h3 { margin: 0 0 6px; font-size: 18px; color: var(--text-primary, #0f172a); }
+.home-module-card p  { margin: 0; font-size: 14px; color: var(--text-secondary, #64748b); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   [ARI] News-Laufband – dezente blaue Leiste ganz oben (global)
+   ═══════════════════════════════════════════════════════════════════════ */
+.news-ticker {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  background: var(--hsmw-blue, #005fb8);
+  color: #fff;
+  overflow: hidden;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+.news-ticker-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 0 16px;
+  background: rgba(0, 0, 0, 0.18);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  /* [Claude] Wird jetzt als Button gerendert (An/Aus-Schalter) – Button-Reset */
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.news-ticker-label:hover { background: rgba(0, 0, 0, 0.28); }
+.news-ticker-toggle-icon {
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+/* [Claude] Knopf-Zustand "aus": Laufband angehalten (Hover-Pause bleibt zusaetzlich erhalten). */
+.news-ticker-paused .news-ticker-track { animation-play-state: paused; }
+.news-ticker-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
+}
+.news-ticker-track {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  white-space: nowrap;
+  will-change: transform;
+  animation-name: news-ticker-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.news-ticker-set { display: flex; align-items: center; flex: 0 0 auto; }
+@keyframes news-ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-1 * var(--ticker-shift, 0px))); }
+}
+/* [Claude] Auto-Pause bei Hover/Fokus entfernt: der Knopf links steuert das
+   Laufen jetzt allein. Sonst blieb das Band nach Klick auf "Start" stehen,
+   weil Cursor/Fokus noch auf dem Knopf lagen und es sofort wieder pausierten. */
+.news-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.92;
+}
+.news-ticker-item:hover { opacity: 1; }
+.news-ticker-item:hover .news-ticker-text { text-decoration: underline; text-underline-offset: 3px; }
+.news-ticker-text { padding: 0 26px 0 12px; }
+.news-ticker-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  flex: 0 0 auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .news-ticker-viewport { overflow-x: auto; }
+  .news-ticker-track { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   [ARI] Mensa: die schraegen "Deck"-Karten bleiben unveraendert.
+   Lightmode 1:1 wie im Original – NUR der Darkmode wird angepasst (vorher
+   war das Buchstaben-Wasserzeichen ein schwarzer Schmierfleck und der
+   Karten-Look zu hell). Kein transform/Layout angefasst -> Schraeglage bleibt.
+   ═══════════════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .day-carousel .day-tab,
+[data-theme="dark"] .day-carousel .day-tab:nth-child(2n),
+[data-theme="dark"] .day-carousel .day-tab:nth-child(3n) {
+  background:
+    linear-gradient(135deg, rgba(34, 44, 57, 0.98), rgba(23, 31, 41, 0.98)),
+    repeating-linear-gradient(0deg, rgba(120, 170, 225, 0.10) 0 1px, transparent 1px 18px);
+  border: 1px solid rgba(120, 170, 225, 0.20);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.45);
+}
+[data-theme="dark"] .day-carousel .day-tab::before {
+  color: rgba(255, 255, 255, 0.07);   /* helles, dezentes Wasserzeichen statt schwarzem Schmier */
+}
+[data-theme="dark"] .day-carousel .day-tab .day-tab-name { color: #e8eef6; }
+[data-theme="dark"] .day-carousel .day-tab .day-tab-date { color: #9fb2c6; }
+[data-theme="dark"] .day-carousel .day-tab:hover,
+[data-theme="dark"] .day-carousel .day-tab.active {
+  background:
+    linear-gradient(135deg, #20304a, #18233a),
+    repeating-linear-gradient(0deg, rgba(120, 170, 225, 0.14) 0 1px, transparent 1px 18px);
+  border-color: var(--hsmw-blue);
+  box-shadow: 0 28px 46px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .day-carousel .day-tab.active .day-tab-name,
+[data-theme="dark"] .day-carousel .day-tab.active .day-tab-date { color: #ffffff; }
+
+/* [ARI] Preis-Pillen im Darkmode lesbar machen (vorher weiss auf hellblau = unsichtbar) */
+[data-theme="dark"] .meal-price {
+  background: rgba(0, 95, 184, 0.24);
+  color: #dbeafe;
 }

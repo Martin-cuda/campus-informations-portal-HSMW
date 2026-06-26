@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-const API = "http://127.0.0.1:8000";
+// Relativ -> selber Origin: im Dev ueber den Vite-Proxy (/auth -> Backend),
+// in Prod ueber den Reverse-Proxy. Kein hartes 127.0.0.1 mehr (sonst kaputt
+// beim Hosten oder beim Aufruf von einem anderen Geraet).
+const API = "";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();

@@ -212,7 +212,7 @@ export default function Mensa() {
                             );
                           })
                         ) : (
-                          <span className="badge badge-gray" style={{ background: "#e2e8f0", color: "#475569", fontWeight: 600 }}>
+                          <span className="badge badge-unavailable">
                             Nicht verfügbar
                           </span>
                         )}

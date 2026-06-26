@@ -22,7 +22,7 @@ import uuid
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
@@ -76,6 +76,7 @@ def _normalized_keyword(s: str) -> str:
 def subscribe(
     data: SubscribeIn,
     background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> SubscribeOut:
     """
@@ -113,7 +114,7 @@ def subscribe(
     # Bestätigungs-Mail JETZT senden und das Ergebnis zurückmelden, damit ein
     # fehlgeschlagener oder "trockener" Versand nicht unsichtbar bleibt.
     # (subscribe ist eine sync-Route → läuft im Threadpool, blockt den Loop nicht.)
-    subject, text, html = render_confirm_mail(sub.email, sub.keyword, sub.token)
+    subject, text, html = render_confirm_mail(sub.email, sub.keyword, sub.token, request)
     gesendet = send_mail(sub.email, subject, text, html)
 
     if not mail_configured():
@@ -134,7 +135,7 @@ def subscribe(
 
 
 @router.get("/confirm")
-def confirm(token: str, db: Session = Depends(get_db)) -> HTMLResponse:
+def confirm(token: str, request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     """
     Bestätigt ein Abo per Token. Wird vom Nutzer durch Klick in der Mail
     aufgerufen → kleine HTML-Seite als Antwort, damit der Browser etwas
@@ -143,14 +144,14 @@ def confirm(token: str, db: Session = Depends(get_db)) -> HTMLResponse:
     if not _TOKEN_RE.match(token or ""):
         return HTMLResponse(_inline_html(
             "Token ungültig",
-            "Der Bestätigungs-Link sieht nicht richtig aus."
+            "Der Bestätigungs-Link sieht nicht richtig aus.", request
         ), status_code=400)
 
     sub = db.query(MensaSubscription).filter(MensaSubscription.token == token).first()
     if not sub:
         return HTMLResponse(_inline_html(
             "Token nicht gefunden",
-            "Vielleicht hast du das Abo schon abbestellt?"
+            "Vielleicht hast du das Abo schon abbestellt?", request
         ), status_code=404)
 
     sub.confirmed = True
@@ -161,17 +162,17 @@ def confirm(token: str, db: Session = Depends(get_db)) -> HTMLResponse:
     return HTMLResponse(_inline_html(
         "Mensa-Benachrichtigung aktiv",
         f"Wir schicken dir eine E-Mail sobald „{sub.keyword}\" auf dem "
-        f"Speiseplan steht. Du kannst dich jederzeit abmelden."
+        f"Speiseplan steht. Du kannst dich jederzeit abmelden.", request
     ))
 
 
 @router.get("/unsubscribe")
-def unsubscribe(token: str, db: Session = Depends(get_db)) -> HTMLResponse:
+def unsubscribe(token: str, request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     """Deaktiviert das Abo. Soft-Delete – Eintrag bleibt aber inaktiv."""
     if not _TOKEN_RE.match(token or ""):
         return HTMLResponse(_inline_html(
             "Token ungültig",
-            "Der Link sieht nicht richtig aus."
+            "Der Link sieht nicht richtig aus.", request
         ), status_code=400)
 
     sub = db.query(MensaSubscription).filter(MensaSubscription.token == token).first()
@@ -179,7 +180,7 @@ def unsubscribe(token: str, db: Session = Depends(get_db)) -> HTMLResponse:
         # Nicht-existente Token nicht "verraten" – wir tun einfach so als wäre ok.
         return HTMLResponse(_inline_html(
             "Abo abgemeldet",
-            "Du erhältst keine weiteren Mails."
+            "Du erhältst keine weiteren Mails.", request
         ))
 
     sub.active = False
@@ -187,7 +188,7 @@ def unsubscribe(token: str, db: Session = Depends(get_db)) -> HTMLResponse:
     db.commit()
     return HTMLResponse(_inline_html(
         "Abo abgemeldet",
-        "Du erhältst keine weiteren Mensa-Mails."
+        "Du erhältst keine weiteren Mensa-Mails.", request
     ))
 
 
@@ -251,7 +252,7 @@ def send_test_mail(email: EmailStr, _admin: Admin = Depends(require_admin)):
     }
 
 
-def _inline_html(title: str, message: str) -> str:
+def _inline_html(title: str, message: str, request=None) -> str:
     return (
         '<!doctype html><html lang="de"><head><meta charset="utf-8">'
         '<title>' + title + ' - bttrhsmw</title>'
@@ -262,5 +263,5 @@ def _inline_html(title: str, message: str) -> str:
         "border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);max-width:520px;}"
         "h1{color:#2596be;margin-top:0;}a{color:#2596be;}</style></head><body>"
         '<div class="card"><h1>' + title + '</h1><p>' + message + '</p>'
-        '<p><a href="' + frontend_base_url() + '">&larr; Zurueck zum Campus-Portal</a></p></div></body></html>'
+        '<p><a href="' + frontend_base_url(request) + '">&larr; Zurueck zum Campus-Portal</a></p></div></body></html>'
     )

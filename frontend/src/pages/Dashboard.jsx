@@ -221,6 +221,9 @@ export default function Dashboard({ modules }) {
   const raumfinderModule = moduleById.get("raumfinder");
   const mensaModule = moduleById.get("mensa");
   const kontaktModule = moduleById.get("kontakt");
+  // [FIX Claude] Eigene/zugebuchte Module (alles ausser den 4 Kernmodulen)
+  const CORE_IDS = ["hochschule", "fakultaeten", "news", "mensa", "raumfinder", "kontakt"];
+  const extraTiles = (modules || []).filter((m) => !CORE_IDS.includes(m.id));
   const previewNews = [
     ...w.latestNews,
     {
@@ -386,7 +389,7 @@ export default function Dashboard({ modules }) {
                                   );
                                 })
                               ) : (
-                                <span className="badge badge-gray" style={{ background: "#e2e8f0", color: "#475569", fontWeight: 600 }}>
+                                <span className="badge badge-unavailable">
                                   Nicht verfÃƒÂ¼gbar
                                 </span>
                               )}
@@ -402,6 +405,29 @@ export default function Dashboard({ modules }) {
           </>
         )}
       </section>
+
+      {extraTiles.length > 0 && (
+        <section className="home-modules-preview" aria-label="Weitere Angebote">
+          <div className="latest-news-title">
+            <h2>WEITERE ANGEBOTE</h2>
+            <span />
+          </div>
+          <div className="home-modules-grid">
+            {extraTiles.map((mod) => (
+              <Link
+                to={mod.path}
+                className="home-module-card"
+                key={mod.id}
+                style={{ "--mod-color": mod.color || "#3b82f6" }}
+              >
+                {mod.icon && <span className="home-module-icon">{mod.icon}</span>}
+                <h3>{mod.label}</h3>
+                <p>{mod.description || "Modul öffnen"}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
     </div>
   );

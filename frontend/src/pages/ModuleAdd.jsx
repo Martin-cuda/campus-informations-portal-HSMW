@@ -257,14 +257,22 @@ export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manage
   // Aktuelle Akzentfarbe ist keine der Presets → der „Eigene Farbe"-Swatch ist aktiv
   const isCustomColor = !FARB_OPTIONEN.some((f) => f.value === customColor);
 
-  // ── [MERGE] Admin: Modul in der Reihenfolge verschieben ──
+  // [Claude] Nur EIGENE Module werden hier verwaltet – Kernmodule (Hochschule,
+  // Mensa, ...) sind raus, die Seite ist auf "Modul hinzufuegen" fokussiert.
+  const ownModules = (manageItems || []).filter((m) => String(m.id).startsWith("custom-"));
+
+  // Reihenfolge der eigenen Module aendern. An den Server geht die volle Liste:
+  // Kernmodule unveraendert vorne, dahinter die neu sortierten eigenen Module.
   const moveItem = (index, dir) => {
     if (!onReorder) return;
-    const ids = manageItems.map((m) => m.id);
+    const own = ownModules.map((m) => m.id);
     const j = index + dir;
-    if (j < 0 || j >= ids.length) return;
-    [ids[index], ids[j]] = [ids[j], ids[index]];
-    onReorder(ids);
+    if (j < 0 || j >= own.length) return;
+    [own[index], own[j]] = [own[j], own[index]];
+    const coreIds = (manageItems || [])
+      .filter((m) => !String(m.id).startsWith("custom-"))
+      .map((m) => m.id);
+    onReorder([...coreIds, ...own]);
   };
 
   return (
@@ -272,12 +280,12 @@ export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manage
       {/* Header oben passt sich an Modus an */}
       <div className="page-header fade-up">
         <div className="page-title">
-          {istEditMode ? "Modul bearbeiten" : "Module verwalten"}
+          {istEditMode ? "Modul bearbeiten" : "Modul hinzufügen"}
         </div>
         <div className="page-subtitle">
           {istEditMode
             ? `Du bearbeitest "${editing.label}" – Änderungen wirken für alle User`
-            : "Module sortieren, entfernen oder ein neues hinzufügen"}
+            : "Ein vorhandenes Modul aktivieren oder ein eigenes erstellen"}
         </div>
       </div>
 
@@ -286,25 +294,23 @@ export default function ModuleAdd({ onAdd, existing, onRemove, onReorder, manage
           {formOk}
         </div>
       )}
-      {/* ── [MERGE] Admin: aktive Module verwalten (sortieren/entfernen) ── */}
-      {manageItems.length > 0 && (onReorder || onRemove) && (
+      {/* [Claude] Nur EIGENE Module verwalten (Kernmodule sind hier raus). */}
+      {ownModules.length > 0 && (onReorder || onRemove) && (
         <div className="card fade-up" style={{ marginBottom: 16 }}>
-          <h2 className="page-title" style={{ marginTop: 0, fontSize: "1.15rem" }}>Aktive Module</h2>
+          <h2 className="page-title" style={{ marginTop: 0, fontSize: "1.15rem" }}>Deine Module</h2>
           <p className="page-subtitle" style={{ marginBottom: 16 }}>
-            Reihenfolge per Pfeil ändern oder Modul entfernen – gilt für Navigation und Startseite.
+            Selbst erstellte Module sortieren, bearbeiten oder entfernen.
           </p>
           <div className="manage-grid">
-            {manageItems.map((mod, i) => (
+            {ownModules.map((mod, i) => (
               <div key={mod.id} className="manage-card">
                 <span className="manage-num">{i + 1}</span>
                 <span className="manage-label">{mod.label}</span>
                 <div className="manage-actions">
-                  {String(mod.id).startsWith("custom-") && (
-                    <button type="button" className="manage-btn" onClick={() => startEdit(mod)} title="Bearbeiten" aria-label="Bearbeiten">✎</button>
-                  )}
+                  <button type="button" className="manage-btn" onClick={() => startEdit(mod)} title="Bearbeiten" aria-label="Bearbeiten">✎</button>
                   <button type="button" className="manage-btn" disabled={i === 0}
                     onClick={() => moveItem(i, -1)} title="Nach oben" aria-label="Nach oben">▲</button>
-                  <button type="button" className="manage-btn" disabled={i === manageItems.length - 1}
+                  <button type="button" className="manage-btn" disabled={i === ownModules.length - 1}
                     onClick={() => moveItem(i, 1)} title="Nach unten" aria-label="Nach unten">▼</button>
                   {onRemove && (
                     <button type="button" className="manage-btn manage-btn-danger"
