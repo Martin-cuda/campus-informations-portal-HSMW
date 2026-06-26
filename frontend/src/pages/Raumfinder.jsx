@@ -60,6 +60,8 @@ export default function Raumfinder() {
   const [nurFreie, setNurFreie] = useState(false);
   // ladeRaeume = true während die Räume eines angeklickten Hauses nachgeladen werden
   const [ladeRaeume, setLadeRaeume] = useState(false);
+  // ladeFehler = Fehlertext wenn die Räume nicht geladen werden konnten (null = kein Fehler)
+  const [ladeFehler, setLadeFehler] = useState(null);
 
 // Beim Laden der Seite: aktuelle Belegungen vom Backend holen
 // Beim Laden der Seite: nur die leichte Häuserliste holen (ohne Räume),
@@ -80,6 +82,7 @@ useEffect(() => {
   // dann anzeigen. setAusgewaehltesRaum wird zurückgesetzt.
   const hausAnzeigen = async (haus) => {
     setAusgewaehltesRaum(null);
+    setLadeFehler(null);
 
     // Räume schon geladen? Dann direkt anzeigen, kein erneuter Request nötig.
     if (haus.raeume !== null) {
@@ -104,12 +107,11 @@ useEffect(() => {
         return r;
       });
       const hausMitRaeumen = { ...haus, raeume: raeumeMitBelegungen };
-      // Im haeuser-State das Haus mit seinen jetzt geladenen Räumen aktualisieren,
-      // damit ein erneuter Klick auf dasselbe Haus nicht nochmal laden muss.
       setHaeuser((prev) => prev.map((h) => (h.id === haus.id ? hausMitRaeumen : h)));
       setAusgewaehltesHaus(hausMitRaeumen);
     } catch (err) {
       console.warn("Räume konnten nicht geladen werden:", err);
+      setLadeFehler("Räume konnten nicht geladen werden. Bitte versuche es erneut.");
     } finally {
       setLadeRaeume(false);
     }
@@ -217,7 +219,20 @@ useEffect(() => {
             </div>
           )}
 
-          {!ladeRaeume && ausgewaehltesHaus.raeume && (
+          {!ladeRaeume && ladeFehler && (
+            <div className="state-box">
+              <div className="state-box-text" style={{ color: "var(--red)" }}>{ladeFehler}</div>
+              <button
+                onClick={() => hausAnzeigen(ausgewaehltesHaus)}
+                className="btn-secondary"
+                style={{ marginTop: 14 }}
+              >
+                Erneut versuchen
+              </button>
+            </div>
+          )}
+
+          {!ladeRaeume && !ladeFehler && ausgewaehltesHaus.raeume && (
             <>
           {/* ── Filter-Leiste ─────────────────────────────────────── */}
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem", alignItems: "center" }} className="card">
