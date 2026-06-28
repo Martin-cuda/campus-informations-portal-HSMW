@@ -17,7 +17,7 @@ function apiErrorMessage(detail, fallback) {
 }
 
 export async function fetchNews() {
-  const response = await fetch(`${API}/api/news/`);
+  const response = await fetch(`${API}/api/news/`, { cache: "no-store" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
   return Array.isArray(data) ? data : [];
@@ -38,6 +38,49 @@ export async function createNews(news) {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
+    throw new Error(apiErrorMessage(payload?.detail, `HTTP ${response.status}`));
+  }
+
+  return await response.json();
+}
+
+export async function updateNews(id, news) {
+  const token = sessionStorage.getItem("token");
+  if (!token) throw new Error("Nicht eingeloggt.");
+
+  const response = await fetch(`${API}/api/news/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(news),
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(apiErrorMessage(payload?.detail, `HTTP ${response.status}`));
+  }
+
+  return await response.json();
+}
+
+export async function deleteNews(id) {
+  const token = sessionStorage.getItem("token");
+  if (!token) throw new Error("Nicht eingeloggt.");
+
+  const response = await fetch(`${API}/api/news/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    if (response.status === 405) {
+      throw new Error("L\u00f6schen ist im laufenden Backend noch nicht verf\u00fcgbar. Bitte Backend neu starten.");
+    }
     throw new Error(apiErrorMessage(payload?.detail, `HTTP ${response.status}`));
   }
 

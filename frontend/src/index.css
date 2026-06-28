@@ -4465,8 +4465,18 @@ body {
   align-items: center;
   justify-content: center;
   background:
+    linear-gradient(rgba(13, 20, 28, 0.34), rgba(13, 20, 28, 0.34)),
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 84px),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 84px);
+}
+
+.uchicago-hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .uchicago-placeholder-panel h1 {
@@ -4876,7 +4886,7 @@ body {
 
 .latest-news-section {
   position: relative;
-  padding: 0 0 42px;
+  padding: 46px 0 42px;
   background: var(--uchicago-soft);
 }
 
@@ -4955,6 +4965,15 @@ body {
   text-underline-offset: 3px;
 }
 
+.latest-news-title-link {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+.latest-news-title-link:hover {
+  text-decoration-thickness: 3px;
+}
+
 .latest-news-body p {
   margin: 0;
   color: rgba(255, 255, 255, 0.78);
@@ -4975,6 +4994,142 @@ body {
 
 .latest-news-card .news-link-button {
   color: #ffffff !important;
+}
+
+.news-detail-page {
+  width: min(980px, calc(100vw - 48px));
+  margin: 48px auto 72px;
+}
+
+.news-detail-back {
+  display: inline-flex;
+  margin-bottom: 22px;
+  color: var(--hsmw-blue);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.news-detail-back:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.news-detail-header {
+  padding: 38px 40px 34px;
+  background: var(--bg-alt);
+  border: 1px solid var(--stroke);
+  border-top: 12px solid var(--hsmw-blue);
+}
+
+.news-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-bottom: 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.news-detail-header h1 {
+  max-width: 860px;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(2.2rem, 4.2vw, 4rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.news-detail-header p {
+  max-width: 760px;
+  margin: 22px 0 0;
+  color: var(--text-secondary);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.news-detail-image {
+  width: 100%;
+  max-height: 460px;
+  overflow: hidden;
+  border-left: 1px solid var(--stroke);
+  border-right: 1px solid var(--stroke);
+}
+
+.news-detail-image img {
+  width: 100%;
+  height: 100%;
+  max-height: 460px;
+  object-fit: cover;
+  display: block;
+}
+
+.news-detail-body {
+  padding: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--stroke);
+  color: var(--text-primary);
+}
+
+.news-detail-body p {
+  max-width: 760px;
+  margin: 0 0 20px;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.news-detail-body p:last-child {
+  margin-bottom: 0;
+}
+
+.news-detail-admin-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin: -48px 0 18px;
+}
+
+.news-danger-button {
+  border-color: #b91c1c !important;
+  color: #b91c1c !important;
+}
+
+.news-danger-button:hover:not(:disabled) {
+  background: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.news-detail-edit-form {
+  margin-bottom: 24px;
+}
+
+@media (max-width: 760px) {
+  .news-detail-page {
+    width: calc(100vw - 28px);
+    margin-top: 28px;
+  }
+
+  .news-detail-header,
+  .news-detail-body {
+    padding: 24px 20px;
+  }
+
+  .news-detail-header h1 {
+    font-size: clamp(2rem, 10vw, 3.1rem);
+  }
+
+  .news-detail-admin-actions {
+    justify-content: flex-start;
+    margin: 0 0 16px;
+  }
+
+  .news-detail-header p,
+  .news-detail-body p {
+    font-size: 16px;
+  }
 }
 
 .home-news-preview {
@@ -5209,6 +5364,7 @@ body {
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   perspective: 1000px;
+  scroll-padding-inline: clamp(110px, 16vw, 180px);
   scrollbar-width: none;
   scrollbar-color: var(--hsmw-blue) transparent;
   -webkit-overflow-scrolling: touch;
@@ -5229,8 +5385,8 @@ body {
   width: max-content;
   min-width: 100%;
   margin-bottom: 0;
-  padding: 36px min(18vw, 150px) 42px;
-  justify-content: center;
+  padding: 36px clamp(110px, 16vw, 180px) 42px;
+  justify-content: flex-start;
   align-items: center;
 }
 
@@ -5603,6 +5759,32 @@ a,
   }
 }
 
+/* Finale Startseiten-Korrekturen: Fakultätsreiter und Hero-Playbutton */
+.faculty-strip-item {
+  padding-right: 22px;
+  font-size: 16px;
+}
+
+.faculty-strip-item:nth-child(3) {
+  padding-right: 28px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.uchicago-play {
+  font-size: 0;
+}
+
+.uchicago-play::before {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid currentColor;
+}
+
 /* ════════════════════════════════════════════════════════════════════════
    [FIX Claude] Nav-Sichtbarkeit + Mensa-Darkmode
    Bewusst ans Dateiende gehaengt, damit diese Regeln die vielen vorherigen
@@ -5813,4 +5995,701 @@ a,
 [data-theme="dark"] .meal-price {
   background: rgba(0, 95, 184, 0.24);
   color: #dbeafe;
+}
+
+/* [Claude] Finale Hero- und Fakultätskorrektur */
+.uchicago-placeholder-panel {
+  display: none;
+}
+
+.uchicago-hero-video {
+  z-index: 0;
+}
+
+.uchicago-play {
+  z-index: 3;
+  font-size: 0;
+  cursor: pointer;
+}
+
+.uchicago-play::before,
+.uchicago-play::after {
+  content: "";
+  display: block;
+}
+
+.uchicago-play::before {
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid currentColor;
+}
+
+.uchicago-play::after {
+  display: none;
+}
+
+.uchicago-play.is-playing::before,
+.uchicago-play.is-playing::after {
+  width: 4px;
+  height: 14px;
+  margin: 0 2px;
+  border: 0;
+  background: currentColor;
+}
+
+.uchicago-play.is-playing::after {
+  display: block;
+}
+
+.faculty-strip {
+  grid-template-columns: 1.18fr 1.18fr 1.18fr 1fr 1fr 1fr;
+  padding-left: clamp(18px, 7vw, 210px);
+  padding-right: clamp(18px, 7vw, 210px);
+}
+
+.faculty-strip-item,
+.faculty-strip-item:nth-child(3) {
+  min-width: 0;
+  padding: 12px 18px;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+/* Mobile-Finale: Hero-Video voll sichtbar, Fakultätsreiter sauber scrollbar */
+@media (max-width: 760px) {
+  .uchicago-hero {
+    min-height: 0 !important;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    background: #111111;
+  }
+
+  .uchicago-hero-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain !important;
+    background: #111111;
+  }
+
+  .uchicago-play {
+    top: 12px;
+    left: 12px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .faculty-strip {
+    display: flex !important;
+    width: 100%;
+    min-height: 0;
+    grid-template-columns: none !important;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 0 0 8px !important;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .faculty-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .faculty-strip-item,
+  .faculty-strip-item:nth-child(3) {
+    flex: 0 0 clamp(156px, 47vw, 220px);
+    min-height: 62px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 16px;
+    border: 0;
+    scroll-snap-align: start;
+    font-size: 14px;
+    line-height: 1.12;
+    white-space: normal;
+  }
+
+  .faculty-strip-item:hover {
+    transform: none;
+    box-shadow: none;
+    filter: brightness(1.08);
+  }
+}
+
+@media (max-width: 420px) {
+  .faculty-strip-item,
+  .faculty-strip-item:nth-child(3) {
+    flex-basis: 72vw;
+    min-height: 58px;
+    font-size: 13px;
+  }
+}
+
+/* Mobile Campus-App Redesign */
+.mobile-campus-header,
+.mobile-cta-band,
+.mobile-campus-utility,
+.mobile-hero-copy {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body.mobile-menu-open {
+    overflow: hidden;
+  }
+
+  .news-ticker {
+    display: none !important;
+  }
+
+  .uchicago-shell-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding-top: 0;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  .uchicago-mainnav {
+    display: none !important;
+  }
+
+  .mobile-campus-header {
+    min-height: 62px;
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr) 52px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-card);
+  }
+
+  .mobile-menu-button,
+  .mobile-search-button,
+  .mobile-menu-close {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--stroke);
+    background: var(--bg);
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  .mobile-menu-button {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .mobile-menu-button span {
+    width: 20px;
+    height: 2px;
+    background: currentColor;
+  }
+
+  .mobile-brand-badge {
+    min-width: 0;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--stroke);
+    background: var(--bg);
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  .mobile-brand-badge img {
+    width: min(128px, 42vw);
+    max-height: 36px;
+    object-fit: contain;
+  }
+
+  .mobile-brand-badge span {
+    color: var(--hsmw-blue);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .mobile-search-icon {
+    width: 17px;
+    height: 17px;
+    border: 2px solid currentColor;
+    border-radius: 999px;
+    position: relative;
+  }
+
+  .mobile-search-icon::after {
+    content: "";
+    width: 8px;
+    height: 2px;
+    position: absolute;
+    right: -7px;
+    bottom: -4px;
+    background: currentColor;
+    transform: rotate(45deg);
+    transform-origin: left center;
+  }
+
+  .mobile-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    border: 0;
+    background: rgba(0, 0, 0, 0.44);
+  }
+
+  .mobile-menu-panel {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 1002;
+    width: min(330px, 88vw);
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    background: var(--bg-card);
+    border-right: 6px solid var(--hsmw-blue);
+    color: var(--text-primary);
+    overflow-y: auto;
+  }
+
+  .mobile-menu-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  .mobile-menu-head span {
+    display: block;
+    color: var(--hsmw-blue);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .mobile-menu-head strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 26px;
+    line-height: 1;
+  }
+
+  .mobile-menu-close {
+    flex: 0 0 auto;
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .mobile-menu-links {
+    display: grid;
+    gap: 0;
+    margin-top: 18px;
+    border-top: 1px solid var(--stroke);
+  }
+
+  .mobile-menu-link {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--stroke);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .mobile-menu-link.active {
+    color: var(--hsmw-blue);
+  }
+
+  .mobile-menu-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 22px;
+  }
+
+  .mobile-menu-action {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--hsmw-blue);
+    background: transparent;
+    color: var(--hsmw-blue);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .mobile-menu-button:focus-visible,
+  .mobile-search-button:focus-visible,
+  .mobile-brand-badge:focus-visible,
+  .mobile-menu-link:focus-visible,
+  .mobile-menu-action:focus-visible,
+  .mobile-menu-close:focus-visible,
+  .uchicago-play:focus-visible,
+  .mobile-cta-card:focus-visible,
+  .mobile-utility-card:focus-visible,
+  .faculty-strip-item:focus-visible,
+  .home-news-card:focus-visible,
+  .home-news-more:focus-visible {
+    outline: 3px solid #ffb300;
+    outline-offset: 3px;
+  }
+
+  .uchicago-home {
+    background: #f4f4f4;
+  }
+
+  .uchicago-hero {
+    min-height: 0 !important;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: #111111;
+  }
+
+  .uchicago-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 32%, rgba(0, 0, 0, 0.66) 100%);
+    pointer-events: none;
+  }
+
+  .uchicago-hero-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain !important;
+    background: #111111;
+  }
+
+  .mobile-hero-copy {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    z-index: 2;
+    display: block;
+    color: #ffffff;
+  }
+
+  .mobile-hero-copy p {
+    margin: 0 0 6px;
+    color: #d8ecff;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .mobile-hero-copy h1 {
+    max-width: 320px;
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.02;
+    font-weight: 800;
+  }
+
+  .mobile-hero-copy span {
+    display: block;
+    max-width: 310px;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .uchicago-play {
+    top: 12px;
+    left: 12px;
+    z-index: 3;
+    width: 42px;
+    height: 42px;
+  }
+
+  .mobile-cta-band {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 16px 18px 18px;
+    background: var(--hsmw-blue);
+  }
+
+  .mobile-cta-card {
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 13px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    color: #ffffff;
+    text-decoration: none;
+  }
+
+  .mobile-cta-card strong {
+    font-size: 17px;
+    line-height: 1.1;
+  }
+
+  .mobile-cta-card span {
+    margin-top: 4px;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 13px;
+  }
+
+  .mobile-campus-utility {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 18px;
+    background: #ffffff;
+  }
+
+  .mobile-utility-card {
+    min-height: 74px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px 14px;
+    padding: 14px 16px;
+    border-left: 7px solid var(--hsmw-blue);
+    background: #f3f7fb;
+    color: #111111;
+    text-decoration: none;
+  }
+
+  .mobile-utility-card span {
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .mobile-utility-card strong {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .mobile-utility-card small {
+    grid-column: 1 / -1;
+    color: #4b5563;
+    font-size: 12px;
+  }
+
+  .faculty-strip {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+    overflow: visible;
+    padding: 24px 18px 26px !important;
+    background: #f4f4f4;
+    scroll-snap-type: none;
+  }
+
+  .faculty-strip::before {
+    content: "Fakultäten und Institute";
+    display: block;
+    margin-bottom: 4px;
+    color: #333333;
+    font-size: 22px;
+    line-height: 1.15;
+    font-weight: 800;
+  }
+
+  .faculty-strip-item,
+  .faculty-strip-item:nth-child(3) {
+    width: 100%;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    color: #ffffff;
+    font-size: 15px;
+    line-height: 1.18;
+    white-space: normal;
+  }
+
+  .home-news-preview {
+    padding: 40px 18px 44px;
+    background: #f4f4f4;
+  }
+
+  .latest-news-title {
+    margin-bottom: 22px;
+  }
+
+  .latest-news-title h2 {
+    font-size: 25px;
+    line-height: 1.1;
+  }
+
+  .latest-news-title span {
+    width: 82px;
+    margin-top: 14px;
+  }
+
+  .home-news-grid {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .home-news-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-rows: none;
+    background: #003746;
+    overflow: hidden;
+  }
+
+  .home-news-card:first-child {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .home-news-image {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+  }
+
+  .home-news-card:first-child .home-news-image {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+  }
+
+  .home-news-image img {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .home-news-body {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .home-news-body h3 {
+    display: -webkit-box;
+    min-width: 0;
+    max-width: 100%;
+    margin-bottom: 8px;
+    overflow: hidden;
+    font-size: 18px;
+    line-height: 1.22;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .home-news-card:not(:first-child) .home-news-body h3 {
+    font-size: 15px;
+    -webkit-line-clamp: 3;
+  }
+
+  .home-news-body p {
+    display: -webkit-box;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.38;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .home-news-card:not(:first-child) .home-news-body p {
+    -webkit-line-clamp: 2;
+  }
+
+  .home-news-more {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    margin-top: 18px;
+    background: #ffffff;
+  }
+
+  .home-mensa-preview {
+    padding: 34px 18px 42px;
+    background: #ffffff;
+  }
+
+  .home-day-carousel {
+    margin-bottom: 12px;
+  }
+
+  .day-carousel-shell.home-day-carousel {
+    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    gap: 8px;
+  }
+
+  .home-mensa-menu {
+    max-width: 100%;
+  }
+
+  .home-mensa-menu .meal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-mensa-menu .meal-card {
+    min-height: 0;
+  }
+
+  .uchicago-footer {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobile-brand-badge span {
+    display: none;
+  }
+
+  .mobile-hero-copy h1 {
+    font-size: 29px;
+  }
+
+  .home-news-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu-panel,
+  .home-news-image img,
+  .faculty-strip-item,
+  .home-news-card {
+    transition: none !important;
+  }
 }

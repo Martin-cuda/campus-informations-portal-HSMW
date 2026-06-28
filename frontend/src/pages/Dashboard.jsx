@@ -92,7 +92,9 @@ export default function Dashboard({ modules }) {
   const [mensaAktivIdx, setMensaAktivIdx] = useState(null);
   const [mensaPlanStatus, setMensaPlanStatus] = useState("loading");
   const [mensaPlanError, setMensaPlanError] = useState("");
+  const [heroVideoPlaying, setHeroVideoPlaying] = useState(false);
   const mensaCarouselRef = useRef(null);
+  const heroVideoRef = useRef(null);
 
   useEffect(() => {
     fetch(`${API}/api/mensa/heute`)
@@ -188,6 +190,18 @@ export default function Dashboard({ modules }) {
     selectMensaDay(mensaAktivIdx === null ? fallbackIndex : mensaAktivIdx + direction, false);
   };
 
+  const toggleHeroVideo = () => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play();
+      setHeroVideoPlaying(true);
+    } else {
+      video.pause();
+      setHeroVideoPlaying(false);
+    }
+  };
+
   const heuteLabel = new Date().toLocaleDateString("de-DE", {
     weekday: "long",
     day: "numeric",
@@ -224,45 +238,67 @@ export default function Dashboard({ modules }) {
   // [FIX Claude] Eigene/zugebuchte Module (alles ausser den 4 Kernmodulen)
   const CORE_IDS = ["hochschule", "fakultaeten", "news", "mensa", "raumfinder", "kontakt"];
   const extraTiles = (modules || []).filter((m) => !CORE_IDS.includes(m.id));
-  const previewNews = [
-    ...w.latestNews,
-    {
-      id: "preview-campus",
-      title: "Campusleben in Mittweida",
-      teaser: "Einblick in aktuelle Projekte, Veranstaltungen und studentische Initiativen.",
-      category: "Campus",
-      image: "/Campusfoto.jpg",
-    },
-    {
-      id: "preview-studium",
-      title: "Neues aus Studium und Lehre",
-      teaser: "Informationen aus den FakultÃ¤ten, StudiengÃ¤ngen und Hochschulangeboten.",
-      category: "Studium",
-      image: "/Campusfoto.jpg",
-    },
-    {
-      id: "preview-forschung",
-      title: "Forschung an der HSMW",
-      teaser: "Aktuelle Themen aus Laboren, Instituten und Forschungsprojekten.",
-      category: "Forschung",
-      image: "/Campusfoto.jpg",
-    },
-    {
-      id: "preview-service",
-      title: "Service und Termine",
-      teaser: "Wichtige Hinweise fÃ¼r Studierende, Mitarbeitende und GÃ¤ste der Hochschule.",
-      category: "Service",
-      image: "/Campusfoto.jpg",
-    },
-  ].slice(0, 4);
+  const previewNews = w.latestNews.slice(0, 4);
 
   return (
     <div className="dashboard-page uchicago-home">
       <section className="uchicago-hero" aria-label="Startseite">
-        <div className="uchicago-play" aria-hidden="true">â–·</div>
-        <div className="uchicago-placeholder-panel">
-          <h1>Platzhalter</h1>
+        <button
+          type="button"
+          className={"uchicago-play" + (heroVideoPlaying ? " is-playing" : "")}
+          onClick={toggleHeroVideo}
+          aria-label={heroVideoPlaying ? "Video anhalten" : "Video abspielen"}
+          title={heroVideoPlaying ? "Video anhalten" : "Video abspielen"}
+        />
+        <video
+          ref={heroVideoRef}
+          className="uchicago-hero-video"
+          src="/Videobttrhsmw.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          onPlay={() => setHeroVideoPlaying(true)}
+          onPause={() => setHeroVideoPlaying(false)}
+        />
+        <div className="mobile-hero-copy">
+          <p>bttrhsmw Campus Portal</p>
+          <h1>Campus Mittweida im Blick</h1>
+          <span>Neuigkeiten, Mensa, Räume und Kontakte für deinen Hochschulalltag.</span>
         </div>
+      </section>
+
+      <section className="mobile-cta-band" aria-label="Schnelle Aktionen">
+        <Link to="/news" className="mobile-cta-card">
+          <strong>Neuigkeiten</strong>
+          <span>Aktuelle Meldungen lesen</span>
+        </Link>
+        <Link to="/mensa" className="mobile-cta-card">
+          <strong>Mensa heute</strong>
+          <span>{mensaWert === "..." ? "Speiseplan laden" : `${mensaWert} Gerichte`}</span>
+        </Link>
+        <Link to="/raumfinder" className="mobile-cta-card">
+          <strong>Raumfinder</strong>
+          <span>{raeumeWert === "..." ? "Freie Räume finden" : `${raeumeWert} frei`}</span>
+        </Link>
+      </section>
+
+      <section className="mobile-campus-utility" aria-label="Campus-Übersicht">
+        <Link to="/mensa" className="mobile-utility-card">
+          <span>Mensa</span>
+          <strong>{mensaWert}</strong>
+          <small>Speiseplan öffnen</small>
+        </Link>
+        <Link to="/raumfinder" className="mobile-utility-card">
+          <span>Raumfinder</span>
+          <strong>{raeumeWert}</strong>
+          <small>Räume anzeigen</small>
+        </Link>
+        <Link to="/kontakt" className="mobile-utility-card">
+          <span>Kontakt</span>
+          <strong>{kontakteWert}</strong>
+          <small>Verzeichnis öffnen</small>
+        </Link>
       </section>
 
       <nav className="faculty-strip" aria-label="FakultÃ¤ten">
@@ -283,20 +319,24 @@ export default function Dashboard({ modules }) {
           <h2>AKTUELLE MELDUNGEN</h2>
           <span />
         </div>
-        <div className="home-news-grid">
-          {previewNews.map((item) => (
-            <Link to="/news" className="home-news-card" key={item.id || item.title}>
-              <div className="home-news-image">
-                <img src={item.image || "/Campusfoto.jpg"} alt="" />
-              </div>
-              <div className="home-news-body">
-                <h3>{item.title}</h3>
-                <p>{item.teaser || item.category || "Aktuelle Meldung der Hochschule Mittweida"}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-        <Link to="/news" className="home-news-more">Weitere Meldungen ansehen</Link>
+        {previewNews.length > 0 && (
+          <>
+            <div className="home-news-grid">
+              {previewNews.map((item) => (
+                <Link to="/news" className="home-news-card" key={item.id || item.title}>
+                  <div className="home-news-image">
+                    <img src={item.image || "/Campusfoto.jpg"} alt="" />
+                  </div>
+                  <div className="home-news-body">
+                    <h3>{item.title}</h3>
+                    <p>{item.teaser || item.category || "Aktuelle Meldung der Hochschule Mittweida"}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <Link to="/news" className="home-news-more">Weitere Meldungen ansehen</Link>
+          </>
+        )}
       </section>
 
       <section className="home-mensa-preview" aria-label="Mensa Speiseplan">

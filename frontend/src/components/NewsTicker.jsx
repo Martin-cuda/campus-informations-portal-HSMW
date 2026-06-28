@@ -6,6 +6,12 @@ import { fetchNews } from "../api/news";
 // [Claude] Langsamer gestellt, damit das Laufband entspannter wirkt.
 const PX_PER_SEC = 30;
 
+function isRealNewsTitle(title) {
+  const normalized = String(title || "").trim().toLowerCase();
+  if (!normalized) return false;
+  return !/^test(\s*\d*)?$/.test(normalized);
+}
+
 // Dezentes News-Laufband fuer die blaue Leiste ganz oben.
 // - laedt die aktuellen Meldungen (neueste zuerst)
 // - misst die Breite einer Titel-"Bahn" und wiederholt sie so oft, dass die
@@ -15,7 +21,7 @@ const PX_PER_SEC = 30;
 // - Pause bei Hover/Fokus, respektiert "prefers-reduced-motion"
 // - blendet sich komplett aus, wenn es keine News gibt
 export default function NewsTicker() {
-  const [titles, setTitles] = useState([]);
+  const [tickerNews, setTickerNews] = useState([]);
   const viewportRef = useRef(null);
   const setRef = useRef(null);
   const [setWidth, setSetWidth] = useState(0);
@@ -32,10 +38,9 @@ export default function NewsTicker() {
           String(b.date || "").localeCompare(String(a.date || ""))
         );
         const next = sorted
-          .map((n) => (n.title || "").trim())
-          .filter(Boolean)
-          .slice(0, 12);
-        setTitles(next);
+          .filter((n) => isRealNewsTitle(n.title))
+          .slice(0, 4);
+        setTickerNews(next);
       })
       .catch(() => {
         /* Backend offline o. keine News -> Leiste bleibt unsichtbar */
@@ -61,9 +66,9 @@ export default function NewsTicker() {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [titles]);
+  }, [tickerNews]);
 
-  if (titles.length === 0) return null;
+  if (tickerNews.length === 0) return null;
 
   const durationSec = setWidth ? Math.max(24, setWidth / PX_PER_SEC) : 50;
 
@@ -73,15 +78,15 @@ export default function NewsTicker() {
       ref={first ? setRef : undefined}
       aria-hidden={first ? undefined : "true"}
     >
-      {titles.map((text, i) => (
+      {tickerNews.map((item, i) => (
         <Link
-          to="/news"
+          to={item.id ? `/news/${encodeURIComponent(item.id)}` : "/news"}
           className="news-ticker-item"
-          key={i}
+          key={item.id || i}
           tabIndex={first ? undefined : -1}
         >
           <span className="news-ticker-dot" aria-hidden="true" />
-          <span className="news-ticker-text">{text}</span>
+          <span className="news-ticker-text">{item.title}</span>
         </Link>
       ))}
     </div>

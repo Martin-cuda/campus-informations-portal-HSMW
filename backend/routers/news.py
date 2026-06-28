@@ -113,6 +113,39 @@ def create_news(item: NewsCreate, user: str = Depends(get_current_user)):
     return new_item
 
 
+@router.put("/{news_id}")
+def update_news(news_id: str, item: NewsCreate, user: str = Depends(get_current_user)):
+    news = _load()
+    for index, existing in enumerate(news):
+        if existing.get("id") == news_id:
+            updated_item = {
+                **existing,
+                "title": item.title,
+                "date": item.date,
+                "category": item.category,
+                "teaser": item.teaser,
+                "body": item.body,
+                "author": item.author or existing.get("author") or user,
+                "image": item.image,
+            }
+            news[index] = updated_item
+            _save(news)
+            return updated_item
+
+    raise HTTPException(status_code=404, detail="News-Beitrag nicht gefunden.")
+
+
+@router.delete("/{news_id}")
+def delete_news(news_id: str, user: str = Depends(get_current_user)):
+    news = _load()
+    remaining = [item for item in news if item.get("id") != news_id]
+    if len(remaining) == len(news):
+        raise HTTPException(status_code=404, detail="News-Beitrag nicht gefunden.")
+
+    _save(remaining)
+    return {"ok": True, "id": news_id}
+
+
 @router.post("/{news_id}/vote")
 def vote_news(news_id: str, direction: int = 1):
     if direction not in (-1, 1):

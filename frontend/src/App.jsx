@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import Mensa from "./pages/Mensa";
 import MensaLegende from "./pages/MensaLegende";
 import News from "./pages/News";
+import NewsDetail from "./pages/NewsDetail";
 import Kontakte from "./pages/Kontakte";
 import KontaktDetail from "./pages/KontaktDetail";
 import Faculties from "./pages/Faculties";
@@ -285,6 +286,7 @@ function AppInner() {
             <Route path="/mensa"         element={<Mensa />} />
             <Route path="/mensa/legende" element={<MensaLegende />} />
             <Route path="/news"          element={<News />} />
+            <Route path="/news/:newsId"  element={<NewsDetail />} />
             <Route path="/fakultaeten"    element={<Faculties />} />
             <Route path="/kontakt"                element={<Kontakte />} />
             <Route path="/kontakt/:nutzerkuerzel" element={<KontaktDetail />} />
@@ -307,7 +309,7 @@ function AppInner() {
           <div className="uchicago-footer-inner">
             <div className="uchicago-footer-brand">
               <span>Hochschule Mittweida</span>
-              <strong>bttr hsmw</strong>
+              <strong>bttrhsmw</strong>
             </div>
 
             <nav className="uchicago-footer-links" aria-label="Fußnavigation">
@@ -317,7 +319,11 @@ function AppInner() {
               <a href="https://www.hs-mittweida.de/datenschutz/">Datenschutz</a>
             </nav>
 
-            <div className="uchicago-footer-meta">Campus Informationsportal · Version 0.2.0</div>
+            <div className="uchicago-footer-meta">
+              Einführung in die Informatik 2 Gruppe 5 Campus Informations Portal
+              <br />
+              Version 1.0.0 Final
+            </div>
           </div>
         </footer>
       </div>

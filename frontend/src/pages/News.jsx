@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { createNews, fetchNews, voteNews } from "../api/news";
 
 const EMPTY_FORM = {
@@ -20,6 +21,10 @@ function formatDate(value) {
     month: "long",
     year: "numeric",
   });
+}
+
+function newsPath(id) {
+  return `/news/${encodeURIComponent(id)}`;
 }
 
 export default function News() {
@@ -275,7 +280,11 @@ export default function News() {
                       <span>{formatDate(item.date)}</span>
                     </div>
 
-                    <h2>{item.title}</h2>
+                    <h2>
+                      <Link to={newsPath(item.id)} className="latest-news-title-link">
+                        {item.title}
+                      </Link>
+                    </h2>
                     <p>{item.teaser}</p>
 
                     {isExpanded && (
@@ -287,13 +296,9 @@ export default function News() {
                     )}
 
                     <div className="news-post-actions">
-                      <button
-                        type="button"
-                        className="news-link-button"
-                        onClick={() => setExpanded((prev) => ({ ...prev, [item.id]: !isExpanded }))}
-                      >
-                        {isExpanded ? "Weniger anzeigen" : "Artikel lesen"}
-                      </button>
+                      <Link to={newsPath(item.id)} className="news-link-button">
+                        Artikel lesen
+                      </Link>
                       <button type="button" className="news-link-button" onClick={() => handleVote(item.id, 1)}>
                         + {item.score ?? 0}
                       </button>
