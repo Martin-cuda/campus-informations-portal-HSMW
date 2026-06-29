@@ -38,6 +38,19 @@ Start-Process -FilePath "powershell.exe" `
 
 Start-Sleep -Seconds 8
 
+Write-Host "Warming up backend caches..."
+foreach ($url in @(
+    "http://127.0.0.1:8000/api/news/?limit=20",
+    "http://127.0.0.1:8000/api/mensa/heute",
+    "http://127.0.0.1:8000/api/contacts/count"
+)) {
+    try {
+        Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 20 | Out-Null
+    } catch {
+        Write-Host "Warmup skipped for $url"
+    }
+}
+
 Write-Host "Starting frontend..."
 Start-Process -FilePath "powershell.exe" `
     -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $FrontendScript) `

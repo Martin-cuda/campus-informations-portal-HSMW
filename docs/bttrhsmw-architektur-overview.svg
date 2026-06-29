@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">bttrhsmw Architekturueberblick</title>
+  <desc id="desc">Architekturdiagramm des Campus-Informationsportals mit Browser, React-Frontend, FastAPI-Backend, Modulen, Datenhaltung, externen HSMW-APIs und Cloudflare Tunnel.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f5f6f8; }
+      .panel { fill: #ffffff; stroke: #d6dbe2; stroke-width: 2; }
+      .panel-dark { fill: #102033; stroke: #005fb8; stroke-width: 3; }
+      .panel-blue { fill: #005fb8; stroke: #004f99; stroke-width: 2; }
+      .panel-teal { fill: #003c4a; stroke: #005f73; stroke-width: 2; }
+      .panel-warm { fill: #fff5e8; stroke: #f97316; stroke-width: 2; }
+      .title { font: 800 38px "Open Sans", Arial, sans-serif; fill: #111827; }
+      .subtitle { font: 600 18px "Open Sans", Arial, sans-serif; fill: #4b5563; }
+      .label { font: 800 22px "Open Sans", Arial, sans-serif; fill: #111827; }
+      .label-white { font: 800 22px "Open Sans", Arial, sans-serif; fill: #ffffff; }
+      .small { font: 600 15px "Open Sans", Arial, sans-serif; fill: #4b5563; }
+      .small-white { font: 600 15px "Open Sans", Arial, sans-serif; fill: #eaf3ff; }
+      .tiny { font: 700 13px "Open Sans", Arial, sans-serif; fill: #6b7280; letter-spacing: 0.08em; }
+      .arrow { stroke: #005fb8; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .arrow-muted { stroke: #6b7280; stroke-width: 3; fill: none; marker-end: url(#arrow-muted); stroke-dasharray: 9 8; }
+      .divider { stroke: #d6dbe2; stroke-width: 2; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#005fb8"/>
+    </marker>
+    <marker id="arrow-muted" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1600" height="900"/>
+  <text x="80" y="72" class="title">Architekturueberblick: bttrhsmw Campus-Informationsportal</text>
+  <text x="80" y="105" class="subtitle">React/Vite Frontend, FastAPI Backend, geschuetzte Admin-Funktionen und externe HSMW-Datenquellen</text>
+
+  <rect x="80" y="170" width="250" height="150" rx="0" class="panel"/>
+  <text x="112" y="215" class="tiny">NUTZER</text>
+  <text x="112" y="252" class="label">Studierende</text>
+  <text x="112" y="283" class="small">lesen News, Mensa,</text>
+  <text x="112" y="306" class="small">Raeume und Kontakte</text>
+
+  <rect x="80" y="365" width="250" height="150" rx="0" class="panel-warm"/>
+  <text x="112" y="410" class="tiny">ADMIN</text>
+  <text x="112" y="447" class="label">Verwaltung</text>
+  <text x="112" y="478" class="small">erstellt, bearbeitet</text>
+  <text x="112" y="501" class="small">und loescht Inhalte</text>
+
+  <rect x="445" y="210" width="310" height="255" rx="0" class="panel-blue"/>
+  <text x="485" y="260" class="tiny" fill="#d9ecff">FRONTEND</text>
+  <text x="485" y="300" class="label-white">React + Vite</text>
+  <line x1="485" y1="324" x2="715" y2="324" class="divider" opacity="0.45"/>
+  <text x="485" y="360" class="small-white">Routen und UI:</text>
+  <text x="505" y="390" class="small-white">Startseite / Hero</text>
+  <text x="505" y="418" class="small-white">News, Mensa</text>
+  <text x="505" y="446" class="small-white">Raumfinder, Kontakte</text>
+
+  <rect x="865" y="210" width="330" height="255" rx="0" class="panel-dark"/>
+  <text x="905" y="260" class="tiny" fill="#d9ecff">BACKEND</text>
+  <text x="905" y="300" class="label-white">FastAPI REST-API</text>
+  <line x1="905" y1="324" x2="1155" y2="324" class="divider" opacity="0.35"/>
+  <text x="905" y="360" class="small-white">Modulare Router:</text>
+  <text x="925" y="390" class="small-white">News, Mensa</text>
+  <text x="925" y="418" class="small-white">Raeume, Haeuser</text>
+  <text x="925" y="446" class="small-white">Kontakte, Login</text>
+
+  <rect x="1260" y="148" width="260" height="120" rx="0" class="panel"/>
+  <text x="1295" y="193" class="tiny">DATENHALTUNG</text>
+  <text x="1295" y="228" class="label">JSON / DB</text>
+  <text x="1295" y="252" class="small">News, Module, Admins</text>
+
+  <rect x="1260" y="315" width="260" height="120" rx="0" class="panel"/>
+  <text x="1295" y="360" class="tiny">EXTERN</text>
+  <text x="1295" y="395" class="label">HSMW APIs</text>
+  <text x="1295" y="419" class="small">Mensa und Kontakte</text>
+
+  <rect x="865" y="560" width="330" height="125" rx="0" class="panel-teal"/>
+  <text x="905" y="605" class="tiny" fill="#d9ecff">SECURITY</text>
+  <text x="905" y="640" class="label-white">JWT Admin-Schutz</text>
+  <text x="905" y="666" class="small-white">geschuetzte Endpunkte fuer Pflege</text>
+
+  <rect x="445" y="575" width="310" height="110" rx="0" class="panel"/>
+  <text x="485" y="620" class="tiny">HOSTING / DEMO</text>
+  <text x="485" y="655" class="label">Cloudflare Tunnel</text>
+  <text x="485" y="680" class="small">Custom URL fuer die Vorfuehrung</text>
+
+  <path class="arrow" d="M330 245 H430"/>
+  <path class="arrow" d="M330 440 H430"/>
+  <path class="arrow" d="M755 337 H850"/>
+  <path class="arrow" d="M1195 260 H1245"/>
+  <path class="arrow" d="M1195 375 H1245"/>
+  <path class="arrow-muted" d="M1030 465 V545"/>
+  <path class="arrow-muted" d="M755 630 H850"/>
+  <path class="arrow-muted" d="M600 575 V485"/>
+
+  <rect x="80" y="765" width="1440" height="58" rx="0" fill="#e8eef5" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="112" y="801" class="small">Kurz erklaert: Der Browser zeigt die React-Oberflaeche. Das Frontend fragt Daten beim FastAPI-Backend ab. Das Backend trennt die Module in Router, schuetzt Admin-Funktionen mit JWT und bindet externe HSMW-APIs fuer Mensa und Kontakte ein.</text>
+</svg>

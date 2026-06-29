@@ -116,16 +116,14 @@ export default function Dashboard({ modules }) {
       })
       .catch(() => setW((p) => ({ ...p, mensaGerichte: "-" })));
 
-    fetch(`${API}/api/haeuser/`)
+    fetch(`${API}/api/haeuser/summary`)
       .then((r) => r.json())
       .then((data) => {
-        const raeume = (Array.isArray(data) ? data : []).flatMap((h) => h.raeume || []);
-        const frei = raeume.filter((r) => !r.belegt).length;
-        setW((p) => ({ ...p, raeumeFreie: frei, raeumeGesamt: raeume.length }));
+        setW((p) => ({ ...p, raeumeFreie: data.raeumeFreie, raeumeGesamt: data.raeumeGesamt }));
       })
       .catch(() => setW((p) => ({ ...p, raeumeFreie: "-" })));
 
-    fetch(`${API}/api/contacts/`)
+    fetch(`${API}/api/contacts/count`)
       .then((r) => r.json())
       .then((data) => setW((p) => ({ ...p, kontakteAnzahl: data.count })))
       .catch(() => setW((p) => ({ ...p, kontakteAnzahl: "-" })));
@@ -135,32 +133,39 @@ export default function Dashboard({ modules }) {
       .catch(() => setW((p) => ({ ...p, latestNews: [] })));
 
     const ctrl = new AbortController();
-    fetch(`${API}/api/mensa/`, { signal: ctrl.signal })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        const heute0 = tagesAnfang();
-        const tageRaw = (Array.isArray(data?.tage) ? data.tage : [])
-          .filter((t) => new Date((t.datum_raw || 0) * 1000) >= heute0);
+    const idle = window.requestIdleCallback || ((cb) => window.setTimeout(cb, 350));
+    const cancelIdle = window.cancelIdleCallback || window.clearTimeout;
+    const idleId = idle(() => {
+      fetch(`${API}/api/mensa/`, { signal: ctrl.signal })
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then((data) => {
+          const heute0 = tagesAnfang();
+          const tageRaw = (Array.isArray(data?.tage) ? data.tage : [])
+            .filter((t) => new Date((t.datum_raw || 0) * 1000) >= heute0);
 
-        if (tageRaw.length === 0) {
-          setMensaPlanStatus("empty");
-          return;
-        }
+          if (tageRaw.length === 0) {
+            setMensaPlanStatus("empty");
+            return;
+          }
 
-        setMensaTage(tageRaw);
-        setMensaAktivIdx(null);
-        setMensaPlanStatus("ok");
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        setMensaPlanError(err.message || String(err));
-        setMensaPlanStatus("error");
-      });
+          setMensaTage(tageRaw);
+          setMensaAktivIdx(null);
+          setMensaPlanStatus("ok");
+        })
+        .catch((err) => {
+          if (err.name === "AbortError") return;
+          setMensaPlanError(err.message || String(err));
+          setMensaPlanStatus("error");
+        });
+    });
 
-    return () => ctrl.abort();
+    return () => {
+      cancelIdle(idleId);
+      ctrl.abort();
+    };
   }, []);
 
   const aktiverMensaTag = useMemo(
@@ -194,8 +199,7 @@ export default function Dashboard({ modules }) {
     const video = heroVideoRef.current;
     if (!video) return;
     if (video.paused) {
-      video.play();
-      setHeroVideoPlaying(true);
+      video.play().then(() => setHeroVideoPlaying(true)).catch(() => setHeroVideoPlaying(false));
     } else {
       video.pause();
       setHeroVideoPlaying(false);
@@ -255,17 +259,14 @@ export default function Dashboard({ modules }) {
           className="uchicago-hero-video"
           src="/Videobttrhsmw.mp4"
           autoPlay
+          preload="metadata"
+          poster="/Campusfoto.jpg"
           muted
           loop
           playsInline
           onPlay={() => setHeroVideoPlaying(true)}
           onPause={() => setHeroVideoPlaying(false)}
         />
-        <div className="mobile-hero-copy">
-          <p>bttrhsmw Campus Portal</p>
-          <h1>Campus Mittweida im Blick</h1>
-          <span>Neuigkeiten, Mensa, Räume und Kontakte für deinen Hochschulalltag.</span>
-        </div>
       </section>
 
       <section className="mobile-cta-band" aria-label="Schnelle Aktionen">
@@ -445,29 +446,6 @@ export default function Dashboard({ modules }) {
           </>
         )}
       </section>
-
-      {extraTiles.length > 0 && (
-        <section className="home-modules-preview" aria-label="Weitere Angebote">
-          <div className="latest-news-title">
-            <h2>WEITERE ANGEBOTE</h2>
-            <span />
-          </div>
-          <div className="home-modules-grid">
-            {extraTiles.map((mod) => (
-              <Link
-                to={mod.path}
-                className="home-module-card"
-                key={mod.id}
-                style={{ "--mod-color": mod.color || "#3b82f6" }}
-              >
-                {mod.icon && <span className="home-module-icon">{mod.icon}</span>}
-                <h3>{mod.label}</h3>
-                <p>{mod.description || "Modul öffnen"}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
     </div>
   );

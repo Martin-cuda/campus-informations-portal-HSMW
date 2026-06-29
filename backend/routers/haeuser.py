@@ -101,6 +101,19 @@ def alle_haeuser_leicht(db: Session = Depends(get_db)):
     haeuser = db.query(HausDB).all()
     return [{"id": h.id, "name": h.name} for h in haeuser]
 
+@router.get("/summary")
+def haeuser_summary(db: Session = Depends(get_db)):
+    """
+    GET /api/haeuser/summary
+    Kleine Statistik fuer die Startseite, ohne alle Raumdaten zu uebertragen.
+    """
+    gesamt = db.query(RaumDB).count()
+    return {
+        "haeuser": db.query(HausDB).count(),
+        "raeumeGesamt": gesamt,
+        "raeumeFreie": gesamt,
+    }
+
 @router.get("/{haus_id}/raeume")
 def raeume_eines_hauses(haus_id: str, db: Session = Depends(get_db)):
     """

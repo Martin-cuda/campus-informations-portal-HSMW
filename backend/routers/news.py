@@ -1,10 +1,12 @@
+import base64
 import json
+import re
 from datetime import date
 from pathlib import Path
 from typing import List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from auth import get_current_user
@@ -14,6 +16,7 @@ router = APIRouter(prefix="/api/news", tags=["News"])
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DATA_FILE = DATA_DIR / "news.json"
+PUBLIC_NEWS_IMAGE_DIR = Path(__file__).resolve().parents[2] / "frontend" / "public" / "news-images"
 
 
 class NewsCreate(BaseModel):
@@ -69,7 +72,7 @@ def _load() -> list[dict]:
     if not DATA_FILE.exists():
         _save(_seed_news())
     try:
-        with DATA_FILE.open("r", encoding="utf-8") as file:
+        with DATA_FILE.open("r", encoding="utf-8-sig") as file:
             data = json.load(file)
         return data if isinstance(data, list) else []
     except (json.JSONDecodeError, OSError):
@@ -84,27 +87,80 @@ def _save(news: list[dict]) -> None:
     tmp.replace(DATA_FILE)
 
 
+def _store_image(image: Optional[str], news_id: str) -> Optional[str]:
+    if not image or not image.startswith("data:image/"):
+        return image
+
+    match = re.match(r"data:image/([a-zA-Z0-9.+-]+);base64,(.*)", image, re.S)
+    if not match:
+        return image
+
+    ext = match.group(1).lower().replace("jpeg", "jpg")
+    if ext not in {"png", "jpg", "webp", "gif"}:
+        ext = "png"
+
+    safe_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", news_id).strip("-") or uuid4().hex
+    PUBLIC_NEWS_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    target = PUBLIC_NEWS_IMAGE_DIR / f"{safe_id}.{ext}"
+    target.write_bytes(base64.b64decode(match.group(2)))
+    return f"/news-images/{target.name}"
+
+
 def _sort_key(item: dict) -> tuple[str, int]:
     return (item.get("date", ""), int(item.get("score", 0)))
 
 
+def _summary(item: dict) -> dict:
+    image = item.get("image")
+    if isinstance(image, str) and image.startswith("data:image/"):
+        image = "/Campusfoto.jpg"
+    return {
+        "id": item.get("id"),
+        "title": item.get("title"),
+        "date": item.get("date"),
+        "category": item.get("category"),
+        "teaser": item.get("teaser"),
+        "author": item.get("author"),
+        "image": image,
+        "score": int(item.get("score", 0)),
+        "comments": item.get("comments") or [],
+    }
+
+
 @router.get("/")
-def list_news():
-    return sorted(_load(), key=_sort_key, reverse=True)
+def list_news(
+    limit: Optional[int] = Query(default=None, ge=1, le=50),
+    full: bool = Query(default=False),
+):
+    news = sorted(_load(), key=_sort_key, reverse=True)
+    if limit is not None:
+        news = news[:limit]
+    if full:
+        return news
+    return [_summary(item) for item in news]
+
+
+@router.get("/{news_id}")
+def get_news(news_id: str):
+    for item in _load():
+        if item.get("id") == news_id:
+            return item
+    raise HTTPException(status_code=404, detail="News-Beitrag nicht gefunden.")
 
 
 @router.post("/")
 def create_news(item: NewsCreate, user: str = Depends(get_current_user)):
     news = _load()
+    news_id = f"{date.today().isoformat()}-{uuid4().hex[:8]}"
     new_item = NewsItem(
-        id=f"{date.today().isoformat()}-{uuid4().hex[:8]}",
+        id=news_id,
         title=item.title,
         date=item.date,
         category=item.category,
         teaser=item.teaser,
         body=item.body,
         author=item.author or user,
-        image=item.image,
+        image=_store_image(item.image, news_id),
         score=1,
         comments=[],
     ).model_dump()
@@ -126,7 +182,7 @@ def update_news(news_id: str, item: NewsCreate, user: str = Depends(get_current_
                 "teaser": item.teaser,
                 "body": item.body,
                 "author": item.author or existing.get("author") or user,
-                "image": item.image,
+                "image": _store_image(item.image, news_id),
             }
             news[index] = updated_item
             _save(news)

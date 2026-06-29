@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1600" viewBox="0 0 720 1600" role="img" aria-labelledby="title desc">
+  <title id="title">bttrhsmw Architektur Top-down</title>
+  <desc id="desc">Schmales Top-down Architekturdiagramm fuer das Campus-Informationsportal mit Nutzer, Cloudflare Tunnel, React Frontend, FastAPI Backend, Modul-Routern, Admin-Schutz, Datenhaltung und externen HSMW APIs.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f7f9; }
+      .card { fill: #ffffff; stroke: #d8dee8; stroke-width: 2; }
+      .blue { fill: #005fb8; stroke: #004f99; stroke-width: 2; }
+      .dark { fill: #15212f; stroke: #005fb8; stroke-width: 3; }
+      .teal { fill: #003c4a; stroke: #005f73; stroke-width: 2; }
+      .warm { fill: #fff5e8; stroke: #f97316; stroke-width: 2; }
+      .muted { fill: #eef2f7; stroke: #cbd5e1; stroke-width: 2; }
+      .heading { font: 800 34px "Open Sans", Arial, sans-serif; fill: #111827; }
+      .eyebrow { font: 800 13px "Open Sans", Arial, sans-serif; fill: #005fb8; letter-spacing: 0.16em; }
+      .eyebrow-light { font: 800 13px "Open Sans", Arial, sans-serif; fill: #d9ecff; letter-spacing: 0.16em; }
+      .label { font: 800 25px "Open Sans", Arial, sans-serif; fill: #111827; }
+      .label-light { font: 800 25px "Open Sans", Arial, sans-serif; fill: #ffffff; }
+      .text { font: 600 17px "Open Sans", Arial, sans-serif; fill: #4b5563; }
+      .text-light { font: 600 17px "Open Sans", Arial, sans-serif; fill: #eaf3ff; }
+      .mini { font: 700 15px "Open Sans", Arial, sans-serif; fill: #111827; }
+      .mini-light { font: 700 15px "Open Sans", Arial, sans-serif; fill: #ffffff; }
+      .arrow { stroke: #005fb8; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .arrow-muted { stroke: #64748b; stroke-width: 3; fill: none; marker-end: url(#arrow-muted); stroke-dasharray: 9 8; }
+    </style>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <path d="M2,2 L12,7 L2,12 Z" fill="#005fb8"/>
+    </marker>
+    <marker id="arrow-muted" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <path d="M2,2 L12,7 L2,12 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="720" height="1600"/>
+
+  <text x="54" y="72" class="heading">Architektur</text>
+  <text x="54" y="106" class="text">bttrhsmw Campus-Informationsportal</text>
+
+  <rect x="54" y="150" width="612" height="130" class="card"/>
+  <text x="92" y="196" class="eyebrow">NUTZER</text>
+  <text x="92" y="235" class="label">Studierende &amp; Admins</text>
+  <text x="92" y="263" class="text">Browser, QR-Code oder direkte URL</text>
+
+  <path class="arrow" d="M360 280 V338"/>
+
+  <rect x="54" y="340" width="612" height="125" class="muted"/>
+  <text x="92" y="384" class="eyebrow">HOSTING / DEMO</text>
+  <text x="92" y="423" class="label">Cloudflare Tunnel</text>
+  <text x="92" y="451" class="text">macht den lokalen Server oeffentlich erreichbar</text>
+
+  <path class="arrow" d="M360 465 V523"/>
+
+  <rect x="54" y="525" width="612" height="150" class="blue"/>
+  <text x="92" y="572" class="eyebrow-light">FRONTEND</text>
+  <text x="92" y="612" class="label-light">React + Vite</text>
+  <text x="92" y="642" class="text-light">Startseite, News, Mensa, Raumfinder, Kontakte</text>
+  <text x="92" y="668" class="text-light">zeigt UI und sendet API-Anfragen</text>
+
+  <path class="arrow" d="M360 675 V733"/>
+
+  <rect x="54" y="735" width="612" height="160" class="dark"/>
+  <text x="92" y="782" class="eyebrow-light">BACKEND</text>
+  <text x="92" y="822" class="label-light">FastAPI REST-API</text>
+  <text x="92" y="852" class="text-light">verarbeitet Logik, Daten und Rechte</text>
+  <text x="92" y="878" class="text-light">trennt Module in eigene Router</text>
+
+  <path class="arrow" d="M360 895 V953"/>
+
+  <rect x="54" y="955" width="612" height="230" class="card"/>
+  <text x="92" y="1002" class="eyebrow">MODULE</text>
+  <text x="92" y="1042" class="label">Router im Backend</text>
+
+  <rect x="92" y="1072" width="156" height="44" class="blue"/>
+  <text x="123" y="1101" class="mini-light">News</text>
+  <rect x="260" y="1072" width="156" height="44" class="blue"/>
+  <text x="302" y="1101" class="mini-light">Mensa</text>
+  <rect x="428" y="1072" width="156" height="44" class="blue"/>
+  <text x="461" y="1101" class="mini-light">Login</text>
+
+  <rect x="92" y="1130" width="156" height="44" class="muted"/>
+  <text x="118" y="1159" class="mini">Raumfinder</text>
+  <rect x="260" y="1130" width="156" height="44" class="muted"/>
+  <text x="297" y="1159" class="mini">Kontakte</text>
+  <rect x="428" y="1130" width="156" height="44" class="muted"/>
+  <text x="463" y="1159" class="mini">Module</text>
+
+  <path class="arrow" d="M360 1185 V1243"/>
+
+  <rect x="54" y="1245" width="612" height="120" class="teal"/>
+  <text x="92" y="1290" class="eyebrow-light">ADMIN-SCHUTZ</text>
+  <text x="92" y="1330" class="label-light">JWT Login</text>
+  <text x="92" y="1358" class="text-light">geschuetzte Funktionen fuer Verwaltung</text>
+
+  <path class="arrow-muted" d="M360 1365 V1423"/>
+
+  <g>
+    <rect x="54" y="1425" width="292" height="120" class="warm"/>
+    <text x="86" y="1470" class="eyebrow">DATEN</text>
+    <text x="86" y="1508" class="label">JSON / DB</text>
+    <text x="86" y="1536" class="text">News, Module, Admins</text>
+
+    <rect x="374" y="1425" width="292" height="120" class="warm"/>
+    <text x="406" y="1470" class="eyebrow">EXTERN</text>
+    <text x="406" y="1508" class="label">HSMW APIs</text>
+    <text x="406" y="1536" class="text">Mensa, Kontakte</text>
+  </g>
+</svg>

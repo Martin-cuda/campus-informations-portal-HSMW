@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { deleteNews, fetchNews, updateNews } from "../api/news";
+import { deleteNews, fetchNewsDetail, updateNews } from "../api/news";
 
 const EMPTY_EDIT_FORM = {
   title: "",
@@ -26,7 +26,7 @@ function formatDate(value) {
 export default function NewsDetail() {
   const { newsId } = useParams();
   const navigate = useNavigate();
-  const [news, setNews] = useState([]);
+  const [item, setItem] = useState(null);
   const [status, setStatus] = useState("loading");
   const [errorMsg, setErrorMsg] = useState("");
   const [editing, setEditing] = useState(false);
@@ -37,23 +37,24 @@ export default function NewsDetail() {
   const isAdmin = !!sessionStorage.getItem("token");
 
   useEffect(() => {
+    let cancelled = false;
     setStatus("loading");
     setErrorMsg("");
-    fetchNews()
-      .then((items) => {
-        setNews(items);
+    fetchNewsDetail(decodeURIComponent(newsId || ""))
+      .then((entry) => {
+        if (cancelled) return;
+        setItem(entry);
         setStatus("ok");
       })
       .catch((err) => {
+        if (cancelled) return;
         setErrorMsg(err.message || String(err));
         setStatus("error");
       });
-  }, []);
-
-  const item = useMemo(() => {
-    const wantedId = decodeURIComponent(newsId || "");
-    return news.find((entry) => String(entry.id) === wantedId);
-  }, [news, newsId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [newsId]);
 
   const bodyParagraphs = String(item?.body || "")
     .split(/\n+/)
@@ -97,7 +98,7 @@ export default function NewsDetail() {
         ...editForm,
         date: String(editForm.date || "").slice(0, 10),
       });
-      setNews((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry)));
+      setItem(updated);
       setEditing(false);
       setFormMsg("Meldung wurde aktualisiert.");
     } catch (err) {
@@ -124,7 +125,6 @@ export default function NewsDetail() {
 
     try {
       await deleteNews(item.id);
-      setNews((prev) => prev.filter((entry) => entry.id !== item.id));
       navigate("/news");
     } catch (err) {
       setFormMsg(err.message || "Meldung konnte nicht gel\u00f6scht werden.");

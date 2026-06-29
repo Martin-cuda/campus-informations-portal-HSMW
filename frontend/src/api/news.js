@@ -1,4 +1,13 @@
 const API = "";
+let newsCache = null;
+let newsCacheTs = 0;
+let newsRequest = null;
+const NEWS_CACHE_MS = 15000;
+
+function clearNewsCache() {
+  newsCache = null;
+  newsCacheTs = 0;
+}
 
 function apiErrorMessage(detail, fallback) {
   if (Array.isArray(detail)) {
@@ -17,10 +26,32 @@ function apiErrorMessage(detail, fallback) {
 }
 
 export async function fetchNews() {
-  const response = await fetch(`${API}/api/news/`, { cache: "no-store" });
+  const now = Date.now();
+  if (newsCache && now - newsCacheTs < NEWS_CACHE_MS) return newsCache;
+  if (!newsRequest) {
+    newsRequest = fetch(`${API}/api/news/?limit=20`, { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((data) => {
+        newsCache = Array.isArray(data) ? data : [];
+        newsCacheTs = Date.now();
+        return newsCache;
+      })
+      .finally(() => {
+        newsRequest = null;
+      });
+  }
+  return newsRequest;
+}
+
+export async function fetchNewsDetail(id) {
+  const response = await fetch(`${API}/api/news/${encodeURIComponent(id)}`, { cache: "no-store" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
+  const created = await response.json();
+  clearNewsCache();
+  return created;
 }
 
 export async function createNews(news) {
@@ -41,7 +72,9 @@ export async function createNews(news) {
     throw new Error(apiErrorMessage(payload?.detail, `HTTP ${response.status}`));
   }
 
-  return await response.json();
+  const updated = await response.json();
+  clearNewsCache();
+  return updated;
 }
 
 export async function updateNews(id, news) {
@@ -62,7 +95,9 @@ export async function updateNews(id, news) {
     throw new Error(apiErrorMessage(payload?.detail, `HTTP ${response.status}`));
   }
 
-  return await response.json();
+  const deleted = await response.json();
+  clearNewsCache();
+  return deleted;
 }
 
 export async function deleteNews(id) {
@@ -94,5 +129,7 @@ export async function voteNews(id, direction) {
   });
 
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return await response.json();
+  const voted = await response.json();
+  clearNewsCache();
+  return voted;
 }

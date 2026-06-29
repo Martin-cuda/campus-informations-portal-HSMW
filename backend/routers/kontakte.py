@@ -13,6 +13,7 @@ HSMW_CONTACTS_URL = "https://app.hs-mittweida.de/v2/contacts"
 # (parallel, gedrosselt). Danach liegen die Daten 5 Minuten im Cache und alle
 # folgenden Suchen gehen instant – inkl. Suche nach Fakultät/Bereich.
 _KONTAKT_CACHE = {"data": None, "ts": 0.0}
+_KONTAKT_COUNT_CACHE = {"count": None, "ts": 0.0}
 CACHE_TTL_SEC = 300  # 5 Minuten
 
 async def fetch_hsmw_json(url: str) -> dict:
@@ -146,6 +147,25 @@ async def contacts_all(q: str = ""):
         "count": len(contacts),
         "contacts": contacts,
     }
+
+@router.get("/count")
+async def contacts_count():
+    """
+    GET /api/contacts/count
+    Kleine Startseiten-Statistik ohne die komplette Kontaktliste anzureichern.
+    """
+    now = time.time()
+    if (
+        _KONTAKT_COUNT_CACHE["count"] is not None
+        and (now - _KONTAKT_COUNT_CACHE["ts"]) < CACHE_TTL_SEC
+    ):
+        return {"count": _KONTAKT_COUNT_CACHE["count"]}
+
+    data = await fetch_hsmw_json(HSMW_CONTACTS_URL)
+    contacts = data.get("contacts", [])
+    _KONTAKT_COUNT_CACHE["count"] = len(contacts)
+    _KONTAKT_COUNT_CACHE["ts"] = now
+    return {"count": _KONTAKT_COUNT_CACHE["count"]}
 
 
 @router.get("/{nutzerkuerzel}")
