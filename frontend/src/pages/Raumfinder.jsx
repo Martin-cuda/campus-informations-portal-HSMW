@@ -44,6 +44,8 @@ export default function Raumfinder() {
   //haeuser = vollständige Liste aller Gebäude mit ihren Räumen (inkl. Belegungsstatus)
   const [ausgewaehltesHaus, setAusgewaehltesHaus] = useState(null);
   // ausgewaehltesHaus = aktuell angeklicktes Gebäude (null wenn keins ausgewählt)
+  const [hausFilter, setHausFilter] = useState("");
+// hausFilter = Suchtext für die Gebäude-Suche
   const [ausgewaehltesRaum, setAusgewaehltesRaum] = useState(null);
   // ausgewaehltesRaum = aktuell angeklickter Raum im Detailbereich (null wenn keins ausgewählt)
   const [formular, setFormular] = useState({ professor: "", modul: "", von: "", bis: "" });
@@ -130,37 +132,44 @@ useEffect(() => {
 
   // BelegungsToggle: Wenn Raum belegt → markiere als frei, sonst → markiere als belegt mit Formular-Daten
   const raumToggle = async () => {
-    if (ausgewaehltesRaum.belegt) {
-      // Raum freigeben – DELETE Request ans Backend
-      await fetch(`${API_URL}/api/raeume/belegen/${ausgewaehltesHaus.id}/${ausgewaehltesRaum.id}`, {
-        method: "DELETE",
-      });
-    } else {
-      // Raum belegen – POST Request ans Backend
-      await fetch(`${API_URL}/api/raeume/belegen`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          haus_id: ausgewaehltesHaus.id,
-          raum_id: ausgewaehltesRaum.id,
-          professor: formular.professor,
-          modul: formular.modul,
-          von: formular.von,
-          bis: formular.bis,
-        }),
-      });
-    }
+  // Token aus sessionStorage holen (Jerome's Login-System)
+  const token = sessionStorage.getItem("token");
+  if (!token) {
+    alert("Bitte melde dich zuerst an um einen Raum zu belegen.");
+    return;
+  }
+
+  if (ausgewaehltesRaum.belegt) {
+    // Raum freigeben – DELETE Request ans Backend
+    await fetch(`${API_URL}/api/raeume/belegen/${ausgewaehltesHaus.id}/${ausgewaehltesRaum.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } else {
+    // Raum belegen – POST Request ans Backend
+    await fetch(`${API_URL}/api/raeume/belegen`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        haus_id: ausgewaehltesHaus.id,
+        raum_id: ausgewaehltesRaum.id,
+        professor: formular.professor,
+        modul: formular.modul,
+        von: formular.von,
+        bis: formular.bis,
+      }),
+    });
+  }
     const neueHaeuser = haeuser.map((h) => {
       if (h.id !== ausgewaehltesHaus.id) return h;
       return {
         ...h,
         raeume: h.raeume.map((r) => {
           if (r.id !== ausgewaehltesRaum.id) return r;
-          if (r.belegt) {
-            return { ...r, belegt: false, professor: "", modul: "", bis: "" };
-          } else {
-            return { ...r, belegt: true, ...formular };
-          }
+          return { ...r, belegt: !r.belegt };
         }),
       };
     });
@@ -180,30 +189,58 @@ useEffect(() => {
       </div>
 
       {/* ── FABIAN: Häuser-Auswahl ─────────────────────────────────────── */}
-      {/* [MERGE: Claude] Inline-Farben durch CSS-Variablen ersetzt */}
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }} className="fade-up">
-        {haeuser.map((haus) => (
-          <button
-            key={haus.id}
-            onClick={() => hausAnzeigen(haus)}
-            style={{
-              padding: "10px 24px",
-              fontSize: "14px",
-              cursor: "pointer",
-              backgroundColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--card)",
-              color: ausgewaehltesHaus?.id === haus.id ? "#fff" : "var(--text-primary)",
-              border: "1px solid",
-              borderColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--border)",
-              borderRadius: "var(--radius)",
-              fontFamily: "inherit",
-              fontWeight: ausgewaehltesHaus?.id === haus.id ? 600 : 400,
-              transition: "all 0.15s",
-            }}
-          >
-            {haus.name}
-          </button>
-        ))}
-      </div>
+<div style={{ marginBottom: "1.5rem" }} className="fade-up">
+
+  {/* Suchfeld für Gebäude */}
+  <input
+    type="text"
+    placeholder="Gebäude suchen..."
+    value={hausFilter}
+    onChange={(e) => setHausFilter(e.target.value)}
+    style={{
+      padding: "10px 16px",
+      fontSize: "14px",
+      border: "1px solid var(--border)",
+      borderRadius: "var(--radius)",
+      backgroundColor: "var(--card)",
+      color: "var(--text-primary)",
+      fontFamily: "inherit",
+      marginBottom: "1rem",
+      width: "250px",
+      display: "block",
+    }}
+  />
+
+  {/* Haus-Buttons */}
+  <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+    {haeuser
+      .filter((haus) =>
+        haus.name.toLowerCase().includes(hausFilter.toLowerCase())
+      )
+      .map((haus) => (
+        <button
+          key={haus.id}
+          onClick={() => hausAnzeigen(haus)}
+          style={{
+            padding: "10px 24px",
+            fontSize: "14px",
+            cursor: "pointer",
+            backgroundColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--card)",
+            color: ausgewaehltesHaus?.id === haus.id ? "#fff" : "#374151",
+            border: "1px solid",
+            borderColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--border)",
+            borderRadius: "var(--radius)",
+            fontFamily: "inherit",
+            fontWeight: ausgewaehltesHaus?.id === haus.id ? 600 : 400,
+            transition: "all 0.15s",
+          }}
+        >
+          {haus.name}
+        </button>
+      ))}
+  </div>
+
+</div>
 
       {/* ── FABIAN: Räume des gewählten Hauses ───────────────────────── */}
       {ausgewaehltesHaus && (
