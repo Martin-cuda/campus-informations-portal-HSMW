@@ -116,11 +116,19 @@ export default function Raumfinder() {
   // Die Räume eines Hauses werden erst beim Anklicken nachgeladen (Lazy Loading).
   // Das macht den Seitenstart deutlich schneller.
   useEffect(() => {
-    fetch(`${API_URL}/api/haeuser/leicht`)
-      .then((r) => r.json())
-      .then((haeuserData) => {
-        // raeume: null bedeutet "noch nicht geladen"
-        setHaeuser(haeuserData.map((h) => ({ ...h, raeume: null })));
+    Promise.all([
+      fetch(`${API_URL}/api/haeuser/leicht`).then((r) => r.json()),
+      fetch(`${API_URL}/api/haeuser/freie-raeume`).then((r) => r.json()),
+    ])
+      .then(([haeuserData, freieData]) => {
+        // Freie Räume pro Haus als Lookup-Tabelle
+        const freieMap = Object.fromEntries(freieData.map((h) => [h.id, h.frei]));
+        setHaeuser(haeuserData.map((h) => ({
+          ...h,
+          raeume: null,
+          // Anzahl freier Räume direkt beim Start bekannt
+          anzahlFrei: freieMap[h.id] ?? 0,
+        })));
       })
       .catch(() => console.warn("Backend nicht erreichbar"));
   }, []);
@@ -212,7 +220,7 @@ export default function Raumfinder() {
       alert("Bitte melde dich zuerst an um einen Raum zu belegen.");
       return;
     }
-    await fetch(`${API_URL}/api/raeume/belegen`, {
+    const antwort = await fetch(`${API_URL}/api/raeume/belegen`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -227,6 +235,12 @@ export default function Raumfinder() {
         bis: formular.bis,
       }),
     });
+    if (!antwort.ok) {
+      // Fehlermeldung vom Backend anzeigen (z.B. Zeitüberschneidung)
+      const fehler = await antwort.json();
+      alert(fehler.detail || "Dieser Zeitraum ist bereits reserviert.");
+      return;
+    }
     // Fenster schließen und Haus neu laden damit Zeitstrahl aktualisiert wird
     setAusgewaehltesRaum(null);
     const hausOhneRaeume = { ...ausgewaehltesHaus, raeume: null };
@@ -264,6 +278,36 @@ export default function Raumfinder() {
             display: "block",
           }}
         />
+                {/* Zeitfilter für Haus-Buttons */}
+        <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "1rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Zeitraum Von</label>
+            <input
+              type="time"
+              value={filterVon}
+              onChange={(e) => setFilterVon(e.target.value)}
+              style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Bis</label>
+            <input
+              type="time"
+              value={filterBis}
+              onChange={(e) => setFilterBis(e.target.value)}
+              style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
+            />
+          </div>
+          {(filterVon || filterBis) && (
+            <button
+              onClick={() => { setFilterVon(""); setFilterBis(""); }}
+              style={{ padding: "6px 12px", borderRadius: "var(--radius)", border: "1px solid var(--border)", background: "var(--card)", color: "var(--text-primary)", cursor: "pointer", fontSize: 12 }}
+            >
+              Zeitfilter zurücksetzen
+            </button>
+          )}
+        </div>
+
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
           {haeuser
             .filter((haus) => haus.name.toLowerCase().includes(hausFilter.toLowerCase()))
@@ -285,7 +329,18 @@ export default function Raumfinder() {
                   transition: "all 0.15s",
                 }}
               >
-                {haus.name}
+                                {haus.name}
+                <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>
+                  {haus.raeume !== null
+                    ? haus.raeume.filter((r) => {
+                        if (!filterVon || !filterBis) return !r.belegt;
+                        return !(r.belegungen || []).some((b) => b.von < filterBis && b.bis > filterVon);
+                      }).length
+                    : haus.anzahlFrei} frei
+                  {filterVon && filterBis && (
+                    <span style={{ opacity: 0.7 }}> ({filterVon}–{filterBis})</span>
+                  )}
+                </div>
               </button>
             ))}
         </div>
@@ -341,26 +396,6 @@ export default function Raumfinder() {
                         <option key={etage} value={etage}>{etage}</option>
                       ))}
                   </select>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Von</label>
-                  <input
-                    type="time"
-                    value={filterVon}
-                    onChange={(e) => setFilterVon(e.target.value)}
-                    style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
-                  />
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Bis</label>
-                  <input
-                    type="time"
-                    value={filterBis}
-                    onChange={(e) => setFilterBis(e.target.value)}
-                    style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
-                  />
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "16px" }}>
