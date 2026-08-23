@@ -1,92 +1,140 @@
 // ── FABIAN (ORIGINAL) ─────────────────────────────────────────────────────
 // Raumfinder-Seite: zeigt Gebäude und Räume, erlaubt Belegungs-Toggle.
-// Originalcode von Fabian, keine Logik-Änderungen.
 //
-// [MERGE: Claude] Styling-Anpassungen:
-//   1. Wrapper <div style={{ padding: "2rem" }}> durch standard page-header-
-//      Klassen ersetzt damit das Layout konsistent mit den anderen Seiten ist.
-//   2. Haus-Buttons und Raum-Kacheln nutzen jetzt CSS-Variablen aus Fabian's
-//      index.css (--accent, --card, --border, --radius, --green, --red) statt
-//      hardcodierter Hex-Werte. Damit folgt die Seite dem gemeinsamen Theme.
-//   3. Detail-Box nutzt .card-Klasse aus Fabian's index.css.
-//   4. <h1> und <h2> durch .page-title / .page-subtitle ersetzt.
-//   Fabian's gesamte JSX-Logik (useState, toggle, Formular) ist unverändert.
+// Features:
+//   - Lazy Loading: Räume werden erst beim Anklicken eines Hauses geladen
+//   - Suchfeld: Gebäude können nach Name gefiltert werden
+//   - Belegungskalender: zeigt alle Belegungen eines Raums als Tagesstrahl
+//   - Login-Schutz: Belegen/Freigeben nur für eingeloggte Nutzer
+//   - Mehrere Belegungen pro Raum möglich (eigene ID pro Belegung)
 // ──────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from "react";
 
 const API_URL = "";
 
-// Sortiert Räume nach Etage (KG → EG → 1.OG → 2.OG ...) und dann nach Raumnummer
+// Reihenfolge der Etagen für die Sortierung (KG = Keller, EG = Erdgeschoss usw.)
+// Ohne diese Tabelle würde "1. OG" alphabetisch vor "EG" sortiert werden
 const etagenReihenfolge = { "KG": 0, "EG": 1, "1. OG": 2, "2. OG": 3, "3. OG": 4, "4. OG": 5 };
 
+// Sortiert Räume zweistufig:
+// 1. Nach Etage (über die Lookup-Tabelle oben, damit KG vor EG vor 1.OG usw.)
+// 2. Innerhalb der Etage numerisch nach Raumnummer (damit 1-019 vor 1-020 kommt)
 function raeumeSortieren(raeume) {
   return [...raeume].sort((a, b) => {
-    // Zuerst nach Etage sortieren
     const etageA = etagenReihenfolge[a.etage] ?? 99;
     const etageB = etagenReihenfolge[b.etage] ?? 99;
     if (etageA !== etageB) return etageA - etageB;
-    // Dann nach Raumnummer sortieren
+    // numeric: true verhindert alphabetische Fehlsortierung bei Raumnummern
     return a.id.localeCompare(b.id, undefined, { numeric: true });
   });
 }
 
-// Prüft ob ein Raum im angegebenen Zeitslot belegt ist
+// Prüft ob ein Raum im angegebenen Zeitfilter-Slot belegt ist
+// Gibt true zurück wenn sich der Belegungszeitraum mit dem Filterzeitraum überschneidet
 function istBelegtImZeitslot(raum, von, bis) {
   if (!raum.belegt || !raum.von || !raum.bis || !von || !bis) return false;
-  // Überschneidung prüfen: Raum ist belegt wenn sein Zeitslot den Filterslot überlappt
+  // Überschneidung: Raum-von < Filter-bis UND Raum-bis > Filter-von
   return raum.von < bis && raum.bis > von;
+}
+// Berechnet die freien Zeitblöcke eines Raums basierend auf seinen Belegungen.
+// Gibt eine Liste von { von, bis, dauerMin } zurück.
+// Blöcke unter 60 Minuten werden als nicht buchbar markiert.
+function freieZeitbloecke(belegungen) {
+  const tagesStart = "08:00";
+  const tagesEnde = "20:00";
+  const alleZeiten = [
+    { von: tagesStart, bis: tagesStart },
+    ...belegungen.map((b) => ({ von: b.von, bis: b.bis })),
+    { von: tagesEnde, bis: tagesEnde },
+  ].sort((a, b) => a.von.localeCompare(b.von));
+
+  const bloecke = [];
+  for (let i = 0; i < alleZeiten.length - 1; i++) {
+    const freiVon = alleZeiten[i].bis;
+    const freiBis = alleZeiten[i + 1].von;
+    if (freiVon >= freiBis) continue;
+    const [vonH, vonM] = freiVon.split(":").map(Number);
+    const [bisH, bisM] = freiBis.split(":").map(Number);
+    const dauerMin = (bisH * 60 + bisM) - (vonH * 60 + vonM);
+    bloecke.push({ von: freiVon, bis: freiBis, dauerMin });
+  }
+  return bloecke;
+}
+
+// Berechnet das maximale Bis-Zeit für eine neue Belegung:
+// minimum aus (von + 3 Stunden) und dem Ende des freien Blocks
+function maxBisZeit(freiVon, freiBis) {
+  const [vonH, vonM] = freiVon.split(":").map(Number);
+  const maxMin = vonH * 60 + vonM + 180; // +3 Stunden
+  const maxH = Math.floor(maxMin / 60);
+  const maxM = maxMin % 60;
+  const maxZeit = `${String(maxH).padStart(2, "0")}:${String(maxM).padStart(2, "0")}`;
+  // Kleineres der beiden Limits nehmen
+  return maxZeit < freiBis ? maxZeit : freiBis;
 }
 
 export default function Raumfinder() {
-  // ── FABIAN: State (unverändert) ────────────────────────────────────────
+
+  // ── State-Variablen ────────────────────────────────────────────────────
   const [haeuser, setHaeuser] = useState([]);
-  //haeuser = vollständige Liste aller Gebäude mit ihren Räumen (inkl. Belegungsstatus)
+  // haeuser = Liste aller Gebäude (beim Start nur Name+ID, Räume werden lazy nachgeladen)
+
   const [ausgewaehltesHaus, setAusgewaehltesHaus] = useState(null);
-  // ausgewaehltesHaus = aktuell angeklicktes Gebäude (null wenn keins ausgewählt)
+  // ausgewaehltesHaus = aktuell angeklicktes Gebäude (null = keins ausgewählt)
+
   const [hausFilter, setHausFilter] = useState("");
-// hausFilter = Suchtext für die Gebäude-Suche
+  // hausFilter = Suchtext im Gebäude-Suchfeld, filtert die Haus-Buttons in Echtzeit
+
   const [ausgewaehltesRaum, setAusgewaehltesRaum] = useState(null);
-  // ausgewaehltesRaum = aktuell angeklickter Raum im Detailbereich (null wenn keins ausgewählt)
+  // ausgewaehltesRaum = aktuell angeklickter Raum (null = keins ausgewählt)
+
   const [formular, setFormular] = useState({ professor: "", modul: "", von: "", bis: "" });
-  // formular = temporäre Eingabewerte für Professor, Modul und Belegungszeit im Detailbereich
+  // formular = Eingabewerte für die neue Belegung (Professor, Modul, Von, Bis)
 
   // ── Filter State ──────────────────────────────────────────────────────
-  // filterEtage = aktuell ausgewählte Etage ("" = alle)
   const [filterEtage, setFilterEtage] = useState("");
-  // filterVon = Zeitfilter von
+  // filterEtage = gewählte Etage im Dropdown ("" = alle Etagen)
+
   const [filterVon, setFilterVon] = useState("");
-  // filterBis = Zeitfilter bis
+  // filterVon = Zeitfilter Von (z.B. "10:00")
+
   const [filterBis, setFilterBis] = useState("");
-  // nurFreie = wenn true, werden belegte Räume im Zeitslot ausgeblendet
+  // filterBis = Zeitfilter Bis (z.B. "12:00")
+
   const [nurFreie, setNurFreie] = useState(false);
-  // ladeRaeume = true während die Räume eines angeklickten Hauses nachgeladen werden
+  // nurFreie = wenn true, werden im Zeitfilter-Slot belegte Räume ausgeblendet
+
   const [ladeRaeume, setLadeRaeume] = useState(false);
-  // ladeFehler = Fehlertext wenn die Räume nicht geladen werden konnten (null = kein Fehler)
+  // ladeRaeume = true während Räume vom Backend nachgeladen werden (zeigt Ladeanzeige)
+
   const [ladeFehler, setLadeFehler] = useState(null);
+  // ladeFehler = Fehlertext wenn Räume nicht geladen werden konnten (null = kein Fehler)
 
-// Beim Laden der Seite: aktuelle Belegungen vom Backend holen
-// Beim Laden der Seite: nur die leichte Häuserliste holen (ohne Räume),
-// damit die Seite sofort startet statt auf alle 800+ Räume zu warten.
-useEffect(() => {
-  fetch(`${API_URL}/api/haeuser/leicht`)
-    .then((r) => r.json())
-    .then((haeuserData) => {
-      // Räume werden erst beim Anklicken eines Hauses nachgeladen (Lazy Loading)
-      setHaeuser(haeuserData.map((h) => ({ ...h, raeume: null })));
-    })
-    .catch(() => console.warn("Backend nicht erreichbar"));
-}, []);
+  // ── Lazy Loading: Beim Start nur die Gebäudeliste laden ───────────────
+  // Statt alle 800+ Räume sofort zu laden, holen wir zuerst nur Namen und IDs.
+  // Die Räume eines Hauses werden erst beim Anklicken nachgeladen (Lazy Loading).
+  // Das macht den Seitenstart deutlich schneller.
+  useEffect(() => {
+    fetch(`${API_URL}/api/haeuser/leicht`)
+      .then((r) => r.json())
+      .then((haeuserData) => {
+        // raeume: null bedeutet "noch nicht geladen"
+        setHaeuser(haeuserData.map((h) => ({ ...h, raeume: null })));
+      })
+      .catch(() => console.warn("Backend nicht erreichbar"));
+  }, []);
 
-  // ── FABIAN: Handler (unverändert) ─────────────────────────────────────
-  // Haus-Button angeklickt: Zeige Räume dieses Hauses, setze Raum-Auswahl zurück
-  // Haus-Button angeklickt: Räume dieses Hauses nachladen (falls noch nicht geladen),
-  // dann anzeigen. setAusgewaehltesRaum wird zurückgesetzt.
+  // ── Haus anzeigen: Räume lazy nachladen ───────────────────────────────
+  // Wenn ein Haus-Button angeklickt wird:
+  // - Sind die Räume schon geladen? Direkt anzeigen, kein neuer Request.
+  // - Noch nicht geladen? Räume + aktuelle Belegungen vom Backend holen,
+  //   dann zusammenführen und anzeigen.
   const hausAnzeigen = async (haus) => {
     setAusgewaehltesRaum(null);
     setLadeFehler(null);
 
-    // Räume schon geladen? Dann direkt anzeigen, kein erneuter Request nötig.
+    // Räume bereits geladen → direkt anzeigen
     if (haus.raeume !== null) {
       setAusgewaehltesHaus(haus);
       return;
@@ -95,19 +143,38 @@ useEffect(() => {
     setAusgewaehltesHaus(haus);
     setLadeRaeume(true);
     try {
+      // Zwei Requests gleichzeitig: Räume des Hauses + alle aktuellen Belegungen
       const [hausDaten, belegungenData] = await Promise.all([
         fetch(`${API_URL}/api/haeuser/${haus.id}/raeume`).then((r) => r.json()),
         fetch(`${API_URL}/api/raeume/`).then((r) => r.json()),
       ]);
-      const belegungen = belegungenData.belegungen || {};
+
+      // Belegungen sind jetzt eine Liste (mehrere Belegungen pro Raum möglich)
+      const belegungen = belegungenData.belegungen || [];
+
+      // Jeden Raum mit seinen Belegungen zusammenführen
       const raeumeMitBelegungen = hausDaten.raeume.map((r) => {
-        const key = `${haus.id}_${r.id}`;
-        const belegung = belegungen[key];
-        if (belegung) {
-          return { ...r, belegt: true, professor: belegung.professor, modul: belegung.modul, bis: belegung.bis };
+        // Alle Belegungen für diesen Raum aus der Liste herausfiltern
+        const raumBelegungen = belegungen.filter(
+          (b) => b.raum_id === r.id && b.haus_id === haus.id
+        );
+        if (raumBelegungen.length > 0) {
+          return {
+            ...r,
+            belegt: true,
+            belegungen: raumBelegungen,
+            // erste Belegung für Rückwärtskompatibilität (z.B. Zeitfilter)
+            belegung_id: raumBelegungen[0].id,
+            professor: raumBelegungen[0].professor,
+            modul: raumBelegungen[0].modul,
+            von: raumBelegungen[0].von,
+            bis: raumBelegungen[0].bis,
+          };
         }
-        return r;
+        // Kein Belegungseintrag → Raum ist frei
+        return { ...r, belegt: false, belegungen: [] };
       });
+
       const hausMitRaeumen = { ...haus, raeume: raeumeMitBelegungen };
       setHaeuser((prev) => prev.map((h) => (h.id === haus.id ? hausMitRaeumen : h)));
       setAusgewaehltesHaus(hausMitRaeumen);
@@ -119,8 +186,9 @@ useEffect(() => {
     }
   };
 
- // Klick auf einen Raum: Zeige Details dieses Raums im Formular, fülle Formular mit aktuellen Werten.
-  // Klick auf den bereits ausgewählten Raum klappt die Detailbox wieder zu (Abwählen).
+  // ── Raum anzeigen/abwählen ────────────────────────────────────────────
+  // Klick auf Raum-Kachel: Detailbereich öffnen und Formular befüllen.
+  // Klick auf bereits ausgewählten Raum: Detailbereich wieder zuklappen.
   const raumAnzeigen = (raum) => {
     if (ausgewaehltesRaum?.id === raum.id) {
       setAusgewaehltesRaum(null);
@@ -130,132 +198,114 @@ useEffect(() => {
     setFormular({ professor: raum.professor, modul: raum.modul, von: raum.von, bis: raum.bis });
   };
 
-  // BelegungsToggle: Wenn Raum belegt → markiere als frei, sonst → markiere als belegt mit Formular-Daten
+  // ── Belegungs-Toggle mit Login-Schutz ─────────────────────────────────
+  // Belegt einen freien Raum oder gibt einen belegten Raum frei.
+  // Login-Schutz: Token wird aus dem sessionStorage geholt (Jerome's JWT-System).
+  // Ohne gültigen Token wird die Aktion abgebrochen und ein Hinweis angezeigt.
+  // Der Token wird als Authorization-Header an das Backend geschickt,
+  // das dann prüft ob der Nutzer eingeloggt ist.
   const raumToggle = async () => {
-  // Token aus sessionStorage holen (Jerome's Login-System)
-  const token = sessionStorage.getItem("token");
-  if (!token) {
-    alert("Bitte melde dich zuerst an um einen Raum zu belegen.");
-    return;
-  }
-
-  if (ausgewaehltesRaum.belegt) {
-    // Raum freigeben – DELETE Request ans Backend
-    await fetch(`${API_URL}/api/raeume/belegen/${ausgewaehltesHaus.id}/${ausgewaehltesRaum.id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } else {
-    // Raum belegen – POST Request ans Backend
-    await fetch(`${API_URL}/api/raeume/belegen`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        haus_id: ausgewaehltesHaus.id,
-        raum_id: ausgewaehltesRaum.id,
-        professor: formular.professor,
-        modul: formular.modul,
-        von: formular.von,
-        bis: formular.bis,
-      }),
-    });
-  }
-    const neueHaeuser = haeuser.map((h) => {
-      if (h.id !== ausgewaehltesHaus.id) return h;
-      return {
-        ...h,
-        raeume: h.raeume.map((r) => {
-          if (r.id !== ausgewaehltesRaum.id) return r;
-          return { ...r, belegt: !r.belegt };
+    // Token aus sessionStorage holen (wird beim Admin-Login gespeichert)
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      // Kein Token = nicht eingeloggt → Aktion abbrechen
+      alert("Bitte melde dich zuerst an um einen Raum zu belegen.");
+      return;
+    }
+      await fetch(`${API_URL}/api/raeume/belegen`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          haus_id: ausgewaehltesHaus.id,
+          raum_id: ausgewaehltesRaum.id,
+          professor: formular.professor,
+          modul: formular.modul,
+          von: formular.von,
+          bis: formular.bis,
         }),
-      };
-    });
-    setHaeuser(neueHaeuser);
-    const aktualisiertesHaus = neueHaeuser.find((h) => h.id === ausgewaehltesHaus.id);
-    setAusgewaehltesHaus(aktualisiertesHaus);
-    const aktualisiertesRaum = aktualisiertesHaus.raeume.find((r) => r.id === ausgewaehltesRaum.id);
-    setAusgewaehltesRaum(aktualisiertesRaum);
+      });
+    // Fenster schließen und Haus neu laden damit Zeitstrahl aktualisiert wird
+    setAusgewaehltesRaum(null);
+    const hausOhneRaeume = { ...ausgewaehltesHaus, raeume: null };
+    setHaeuser((prev) => prev.map((h) => h.id === ausgewaehltesHaus.id ? hausOhneRaeume : h));
+    await hausAnzeigen(hausOhneRaeume);
   };
 
   return (
     <div>
-      {/* [MERGE: Claude] page-header statt <h1> (konsistentes Layout) */}
       <div className="page-header module-header module-raumfinder fade-up">
         <div className="page-title">Raumfinder</div>
         <div className="page-subtitle">Gebäude & Belegungsstatus · HS Mittweida</div>
       </div>
 
-      {/* ── FABIAN: Häuser-Auswahl ─────────────────────────────────────── */}
-<div style={{ marginBottom: "1.5rem" }} className="fade-up">
-
-  {/* Suchfeld für Gebäude */}
-  <input
-    type="text"
-    placeholder="Gebäude suchen..."
-    value={hausFilter}
-    onChange={(e) => setHausFilter(e.target.value)}
-    style={{
-      padding: "10px 16px",
-      fontSize: "14px",
-      border: "1px solid var(--border)",
-      borderRadius: "var(--radius)",
-      backgroundColor: "var(--card)",
-      color: "var(--text-primary)",
-      fontFamily: "inherit",
-      marginBottom: "1rem",
-      width: "250px",
-      display: "block",
-    }}
-  />
-
-  {/* Haus-Buttons */}
-  <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-    {haeuser
-      .filter((haus) =>
-        haus.name.toLowerCase().includes(hausFilter.toLowerCase())
-      )
-      .map((haus) => (
-        <button
-          key={haus.id}
-          onClick={() => hausAnzeigen(haus)}
+      {/* ── Häuser-Auswahl mit Suchfeld ────────────────────────────────────
+          Das Suchfeld filtert die Haus-Buttons in Echtzeit nach Gebäudename.
+          Nur Frontend-Logik, kein Backend-Request nötig.
+          Die Buttons selbst lösen das Lazy Loading der Räume aus.        */}
+      <div style={{ marginBottom: "1.5rem" }} className="fade-up">
+        <input
+          type="text"
+          placeholder="Gebäude suchen..."
+          value={hausFilter}
+          onChange={(e) => setHausFilter(e.target.value)}
           style={{
-            padding: "10px 24px",
+            padding: "10px 16px",
             fontSize: "14px",
-            cursor: "pointer",
-            backgroundColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--card)",
-            color: ausgewaehltesHaus?.id === haus.id ? "#fff" : "#374151",
-            border: "1px solid",
-            borderColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--border)",
+            border: "1px solid var(--border)",
             borderRadius: "var(--radius)",
+            backgroundColor: "var(--card)",
+            color: "var(--text-primary)",
             fontFamily: "inherit",
-            fontWeight: ausgewaehltesHaus?.id === haus.id ? 600 : 400,
-            transition: "all 0.15s",
+            marginBottom: "1rem",
+            width: "250px",
+            display: "block",
           }}
-        >
-          {haus.name}
-        </button>
-      ))}
-  </div>
+        />
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          {haeuser
+            .filter((haus) => haus.name.toLowerCase().includes(hausFilter.toLowerCase()))
+            .map((haus) => (
+              <button
+                key={haus.id}
+                onClick={() => hausAnzeigen(haus)}
+                style={{
+                  padding: "10px 24px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  backgroundColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--card)",
+                  color: ausgewaehltesHaus?.id === haus.id ? "#fff" : "#374151",
+                  border: "1px solid",
+                  borderColor: ausgewaehltesHaus?.id === haus.id ? "var(--accent)" : "var(--border)",
+                  borderRadius: "var(--radius)",
+                  fontFamily: "inherit",
+                  fontWeight: ausgewaehltesHaus?.id === haus.id ? 600 : 400,
+                  transition: "all 0.15s",
+                }}
+              >
+                {haus.name}
+              </button>
+            ))}
+        </div>
+      </div>
 
-</div>
-
-      {/* ── FABIAN: Räume des gewählten Hauses ───────────────────────── */}
+      {/* ── Räume des gewählten Hauses ───────────────────────────────────── */}
       {ausgewaehltesHaus && (
         <div className="fade-up">
-          {/* [MERGE: Claude] <h2> durch page-subtitle-Style ersetzt */}
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-muted)", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "IBM Plex Mono, monospace" }}>
             {ausgewaehltesHaus.name} – Räume
           </div>
 
+          {/* Ladeanzeige während Räume nachgeladen werden (Feedback-Prinzip) */}
           {ladeRaeume && (
             <div className="state-box">
               <div className="state-box-text">Räume werden geladen…</div>
             </div>
           )}
 
+          {/* Fehlermeldung mit "Erneut versuchen"-Button (Fehlertoleranz-Prinzip) */}
           {!ladeRaeume && ladeFehler && (
             <div className="state-box">
               <div className="state-box-text" style={{ color: "var(--red)" }}>{ladeFehler}</div>
@@ -271,177 +321,302 @@ useEffect(() => {
 
           {!ladeRaeume && !ladeFehler && ausgewaehltesHaus.raeume && (
             <>
-          {/* ── Filter-Leiste ─────────────────────────────────────── */}
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem", alignItems: "center" }} className="card">
-            {/* Etagen-Filter */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Etage</label>
-              <select
-                value={filterEtage}
-                onChange={(e) => setFilterEtage(e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
-              >
-                <option value="">Alle Etagen</option>
-                {[...new Set(ausgewaehltesHaus.raeume.map((r) => r.etage))]
-                  .sort((a, b) => (etagenReihenfolge[a] ?? 99) - (etagenReihenfolge[b] ?? 99))
-                  .map((etage) => (
-                    <option key={etage} value={etage}>{etage}</option>
-                  ))}
-              </select>
-            </div>
-
-            {/* Zeitfilter Von */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Von</label>
-              <input
-                type="time"
-                value={filterVon}
-                onChange={(e) => setFilterVon(e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
-              />
-            </div>
-
-            {/* Zeitfilter Bis */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Bis</label>
-              <input
-                type="time"
-                value={filterBis}
-                onChange={(e) => setFilterBis(e.target.value)}
-                style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
-              />
-            </div>
-
-            {/* Nur freie Räume Checkbox */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "16px" }}>
-              <input
-                type="checkbox"
-                id="nurFreie"
-                checked={nurFreie}
-                onChange={(e) => setNurFreie(e.target.checked)}
-              />
-              <label htmlFor="nurFreie" style={{ fontSize: 13, color: "var(--text-primary)", cursor: "pointer" }}>
-                Nur freie Räume anzeigen
-              </label>
-            </div>
-
-            {/* Filter zurücksetzen */}
-            <button
-              onClick={() => { setFilterEtage(""); setFilterVon(""); setFilterBis(""); setNurFreie(false); }}
-              style={{ marginTop: "16px", padding: "6px 12px", borderRadius: "var(--radius)", border: "1px solid var(--border)", background: "var(--card)", color: "var(--text-primary)", cursor: "pointer", fontSize: 12 }}
-            >
-              Filter zurücksetzen
-            </button>
-          </div>
-
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
-            {raeumeSortieren(ausgewaehltesHaus.raeume)
-              .filter((raum) => {
-                // Etagen-Filter
-                if (filterEtage && raum.etage !== filterEtage) return false;
-                // Nur freie Räume im Zeitslot
-                if (nurFreie && istBelegtImZeitslot(raum, filterVon, filterBis)) return false;
-                return true;
-              })
-              .map((raum) => (
-                  
-              <div key={raum.id}>
-                <div
-                  onClick={() => raumAnzeigen(raum)}
-                  style={{
-                    padding: "1rem",
-                    width: "150px",
-                    textAlign: "center",
-                    borderRadius: "var(--radius)",
-                    cursor: "pointer",
-                    backgroundColor: raum.belegt ? "var(--red)" : "var(--green)",
-                    color: "white",
-                    fontWeight: "bold",
-                    border: "3px solid",
-                    borderColor: ausgewaehltesRaum?.id === raum.id ? "var(--blue-hsmw)" : "transparent",
-                    transition: "border-color 0.15s",
-                  }}
-                >
-                  <div>{raum.name}</div>
-                  <div style={{ fontSize: "0.8rem", marginTop: 4, opacity: 0.85 }}>{raum.etage}</div>
-                  <div style={{ marginTop: 4 }}>{raum.belegt ? "Belegt" : "Frei"}</div>
+              {/* ── Filter-Leiste ──────────────────────────────────────────
+                  Drei kombinierbare Filter:
+                  1. Etagen-Filter: zeigt nur Räume einer bestimmten Etage
+                  2. Zeitfilter Von/Bis: definiert einen Zeitraum
+                  3. "Nur freie Räume": blendet im Zeitraum belegte Räume aus     */}
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem", alignItems: "center" }} className="card">
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Etage</label>
+                  <select
+                    value={filterEtage}
+                    onChange={(e) => setFilterEtage(e.target.value)}
+                    style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
+                  >
+                    <option value="">Alle Etagen</option>
+                    {[...new Set(ausgewaehltesHaus.raeume.map((r) => r.etage))]
+                      .sort((a, b) => (etagenReihenfolge[a] ?? 99) - (etagenReihenfolge[b] ?? 99))
+                      .map((etage) => (
+                        <option key={etage} value={etage}>{etage}</option>
+                      ))}
+                  </select>
                 </div>
 
-                {/* Detailbereich direkt unter der angeklickten Kachel */}
-                {ausgewaehltesRaum?.id === raum.id && (
-                  <div className="card" style={{ width: "300px", marginTop: "0.5rem" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 14 }}>
-                      {ausgewaehltesRaum.name}
-                    </div>
-                    {ausgewaehltesRaum.belegt ? (
-                      <div>
-                        <p style={{ marginBottom: 6, fontSize: 14, color: "var(--text-secondary)" }}>
-                          <strong>Professor:</strong> {ausgewaehltesRaum.professor}
-                        </p>
-                        <p style={{ marginBottom: 6, fontSize: 14, color: "var(--text-secondary)" }}>
-                          <strong>Modul:</strong> {ausgewaehltesRaum.modul}
-                        </p>
-                        <p style={{ marginBottom: 6, fontSize: 14, color: "var(--text-secondary)" }}>
-                          <strong>Belegt von:</strong> {ausgewaehltesRaum.von} Uhr
-                        </p>
-                        <p style={{ marginBottom: 12, fontSize: 14, color: "var(--text-secondary)" }}>
-                          <strong>Belegt bis:</strong> {ausgewaehltesRaum.bis} Uhr
-                        </p>
-                        <button
-                          onClick={raumToggle}
-                          className="btn-primary"
-                          style={{ background: "var(--green)", width: "auto", padding: "9px 20px" }}
-                        >
-                          Als frei markieren
-                        </button>
-                      </div>
-                    ) : (
-                      <div>
-                        <p style={{ marginBottom: 12, fontSize: 14, color: "var(--text-muted)" }}>
-                          Dieser Raum ist aktuell frei.
-                        </p>
-                        <label className="login-label">Professor</label>
-                        <input
-                          className="login-input"
-                          placeholder="z.B. Prof. Dr. Roschke"
-                          value={formular.professor}
-                          onChange={(e) => setFormular({ ...formular, professor: e.target.value })}
-                        />
-                        <label className="login-label">Modul</label>
-                        <input
-                          className="login-input"
-                          placeholder="z.B. Informatik II"
-                          value={formular.modul}
-                          onChange={(e) => setFormular({ ...formular, modul: e.target.value })}
-                        />
-                        <label className="login-label">Belegt von (z.B. 13:00)</label>
-                        <input
-                          className="login-input"
-                          placeholder="13:00"
-                          value={formular.von}
-                          onChange={(e) => setFormular({ ...formular, von: e.target.value })}
-                        />
-                        <label className="login-label">Belegt bis (z.B. 14:30)</label>
-                        <input
-                          className="login-input"
-                          placeholder="14:30"
-                          value={formular.bis}
-                          onChange={(e) => setFormular({ ...formular, bis: e.target.value })}
-                        />
-                        <button
-                          onClick={raumToggle}
-                          className="btn-primary"
-                          style={{ background: "var(--red)", width: "auto", padding: "9px 20px" }}
-                        >
-                          Als belegt markieren
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Von</label>
+                  <input
+                    type="time"
+                    value={filterVon}
+                    onChange={(e) => setFilterVon(e.target.value)}
+                    style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Bis</label>
+                  <input
+                    type="time"
+                    value={filterBis}
+                    onChange={(e) => setFilterBis(e.target.value)}
+                    style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--border)", fontFamily: "inherit", fontSize: 13 }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "16px" }}>
+                  <input
+                    type="checkbox"
+                    id="nurFreie"
+                    checked={nurFreie}
+                    onChange={(e) => setNurFreie(e.target.checked)}
+                  />
+                  <label htmlFor="nurFreie" style={{ fontSize: 13, color: "var(--text-primary)", cursor: "pointer" }}>
+                    Nur freie Räume anzeigen
+                  </label>
+                </div>
+
+                <button
+                  onClick={() => { setFilterEtage(""); setFilterVon(""); setFilterBis(""); setNurFreie(false); }}
+                  style={{ marginTop: "16px", padding: "6px 12px", borderRadius: "var(--radius)", border: "1px solid var(--border)", background: "var(--card)", color: "var(--text-primary)", cursor: "pointer", fontSize: 12 }}
+                >
+                  Filter zurücksetzen
+                </button>
               </div>
-           ))}
-          </div>
+
+              {/* ── Raum-Kacheln ─────────────────────────────────────────
+                  Jede Kachel zeigt Raumnummer, Etage und Belegungsstatus.
+                  Grün = frei, Rot = belegt (kulturell etablierte Farbcodierung).
+                  Blauer Rand = aktuell ausgewählter Raum.                       */}
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+                {raeumeSortieren(ausgewaehltesHaus.raeume)
+                  .filter((raum) => {
+                    // Etagen-Filter anwenden
+                    if (filterEtage && raum.etage !== filterEtage) return false;
+                    // Zeitfilter anwenden: belegte Räume im Zeitslot ausblenden
+                    if (nurFreie && istBelegtImZeitslot(raum, filterVon, filterBis)) return false;
+                    return true;
+                  })
+                  .map((raum) => (
+                    <div key={raum.id}>
+                      {/* Raum-Kachel */}
+                      <div
+                        onClick={() => raumAnzeigen(raum)}
+                        style={{
+                          padding: "1rem",
+                          width: "150px",
+                          textAlign: "center",
+                          borderRadius: "var(--radius)",
+                          cursor: "pointer",
+                          backgroundColor: raum.belegt ? "var(--red)" : "var(--green)",
+                          color: "white",
+                          fontWeight: "bold",
+                          border: "3px solid",
+                          borderColor: ausgewaehltesRaum?.id === raum.id ? "var(--blue-hsmw)" : "transparent",
+                          transition: "border-color 0.15s",
+                        }}
+                      >
+                        <div>{raum.name}</div>
+                        <div style={{ fontSize: "0.8rem", marginTop: 4, opacity: 0.85 }}>{raum.etage}</div>
+                        <div style={{ marginTop: 4 }}>{raum.belegt ? "Belegt" : "Frei"}</div>
+                      </div>
+
+                      {/* ── Detailbereich (nur beim angeklickten Raum) ──────
+                          Zeigt Belegungskalender, Belegungsliste und Formular.
+                          Klappt beim erneuten Klick auf die Kachel wieder zu.  */}
+                      {ausgewaehltesRaum?.id === raum.id && (
+  <div className="card" style={{ width: "500px", marginTop: "0.5rem", padding: 0, overflow: "hidden" }}>
+    {/* ── Header: Raumname + Status ─────────────────────────── */}
+    <div style={{
+      backgroundColor: ausgewaehltesRaum.belegt ? "var(--red)" : "var(--green)",
+      color: "white",
+      padding: "16px 20px",
+      fontSize: 18,
+      fontWeight: 600,
+      textAlign: "center",
+      borderRadius: "var(--radius) var(--radius) 0 0",
+    }}>
+      {ausgewaehltesRaum.name} — {ausgewaehltesRaum.belegt ? "Belegt" : "Frei"}
+    </div>
+
+    <div style={{ padding: "16px 20px" }}>
+      {/* ── Interaktiver Zeitstrahl ───────────────────────────── */}
+      <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>
+        Tagesplan 08:00 – 20:00
+      </div>
+      <div style={{ position: "relative", height: 56, borderRadius: "var(--radius)", overflow: "hidden", display: "flex" }}>
+        {(() => {
+          const tagesStart = 8 * 60;
+          const tagesEnde = 20 * 60;
+          const tagsDauer = tagesEnde - tagesStart;
+          const belegungen = ausgewaehltesRaum.belegungen || [];
+          const zeitpunkte = [
+            { zeit: "08:00", typ: "start" },
+            ...belegungen.flatMap((b) => [
+              { zeit: b.von, typ: "belegt_start", belegung: b },
+              { zeit: b.bis, typ: "belegt_ende" },
+            ]),
+            { zeit: "20:00", typ: "ende" },
+          ].sort((a, b) => a.zeit.localeCompare(b.zeit));
+          const bloecke = [];
+          for (let i = 0; i < zeitpunkte.length - 1; i++) {
+            const von = zeitpunkte[i].zeit;
+            const bis = zeitpunkte[i + 1].zeit;
+            if (von >= bis) continue;
+            const [vonH, vonM] = von.split(":").map(Number);
+            const [bisH, bisM] = bis.split(":").map(Number);
+            const vonMin = vonH * 60 + vonM;
+            const bisMin = bisH * 60 + bisM;
+            const breite = ((bisMin - vonMin) / tagsDauer) * 100;
+            const dauerMin = bisMin - vonMin;
+            const belegung = belegungen.find((b) => b.von === von);
+            if (belegung) {
+              bloecke.push({ von, bis, breite, typ: "belegt", belegung });
+            } else {
+              bloecke.push({ von, bis, breite, dauerMin, typ: dauerMin >= 60 ? "frei" : "zu_kurz" });
+            }
+          }
+          return bloecke.map((block, idx) => {
+            if (block.typ === "belegt") {
+              return (
+                <div key={idx} title={`${block.belegung.professor} – ${block.belegung.modul}`}
+                  style={{ width: `${block.breite}%`, backgroundColor: "var(--red)", height: "100%", cursor: "default", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 4px" }}>
+                  {block.breite > 10 && <>
+                    <div style={{ fontSize: 11, color: "white", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{block.belegung.professor}</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.85)", whiteSpace: "nowrap" }}>{block.von}–{block.bis}</div>
+                  </>}
+                </div>
+              );
+            }
+            if (block.typ === "zu_kurz") {
+              return (
+                <div key={idx} title="Zu kurz zum Buchen"
+                  style={{ width: `${block.breite}%`, backgroundColor: "#9ca3af", height: "100%", cursor: "not-allowed" }} />
+              );
+            }
+            const maxBis = maxBisZeit(block.von, block.bis);
+            return (
+              <div key={idx}
+                title={`Frei: ${block.von}–${block.bis} (${Math.floor(block.dauerMin / 60)}h ${block.dauerMin % 60}min)`}
+                onClick={() => setFormular((f) => ({ ...f, von: block.von, bis: maxBis }))}
+                style={{ width: `${block.breite}%`, backgroundColor: "var(--green)", height: "100%", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", transition: "opacity 0.15s" }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}>
+                {block.breite > 15 && <>
+                  <div style={{ fontSize: 11, color: "white", fontWeight: 600 }}>FREI — {Math.floor(block.dauerMin / 60)}h {block.dauerMin % 60 > 0 ? `${block.dauerMin % 60}min` : ""}</div>
+                </>}
+              </div>
+            );
+          });
+        })()}
+      </div>
+
+      {/* ── Dynamische Zeitmarkierungen ───────────────────────── */}
+      <div style={{ position: "relative", height: 18, marginTop: 3, fontSize: 11, color: "var(--text-muted)" }}>
+        {(() => {
+          const tagesStart = 8 * 60;
+          const tagsDauer = 12 * 60;
+          const marken = ["08:00", ...((ausgewaehltesRaum.belegungen || []).flatMap((b) => [b.von, b.bis])), "20:00"];
+          const eindeutig = [...new Set(marken)].sort();
+          return eindeutig.map((zeit) => {
+            const [h, m] = zeit.split(":").map(Number);
+            const pos = ((h * 60 + m - tagesStart) / tagsDauer) * 100;
+            return (
+              <span key={zeit} style={{ position: "absolute", left: `${pos}%`, transform: "translateX(-50%)" }}>{zeit}</span>
+            );
+          });
+        })()}
+      </div>
+
+      {/* ── Legende ──────────────────────────────────────────── */}
+      <div style={{ display: "flex", gap: 16, marginTop: 10, marginBottom: 14, fontSize: 12, color: "var(--text-muted)", alignItems: "center" }}>
+        <span><span style={{ display: "inline-block", width: 12, height: 12, backgroundColor: "var(--red)", borderRadius: 2, marginRight: 4, verticalAlign: "middle" }} />Belegt</span>
+        <span><span style={{ display: "inline-block", width: 12, height: 12, backgroundColor: "#9ca3af", borderRadius: 2, marginRight: 4, verticalAlign: "middle" }} />Zu kurz (&lt;60 min)</span>
+        <span><span style={{ display: "inline-block", width: 12, height: 12, backgroundColor: "var(--green)", borderRadius: 2, marginRight: 4, verticalAlign: "middle" }} />Frei — buchbar</span>
+      </div>
+
+      {/* ── Trennlinie ───────────────────────────────────────── */}
+      <hr style={{ border: "none", borderTop: "1px solid var(--border)", marginBottom: 14 }} />
+
+      {/* ── Belegungsliste ───────────────────────────────────── */}
+      {(ausgewaehltesRaum.belegungen || []).length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          {ausgewaehltesRaum.belegungen.map((b) => (
+            <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", backgroundColor: "var(--bg)", borderRadius: "var(--radius)", marginBottom: 6, fontSize: 13 }}>
+              <div>
+                <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{b.von} – {b.bis} Uhr</div>
+                <div style={{ color: "var(--text-secondary)" }}>{b.professor} · {b.modul}</div>
+              </div>
+              <button
+                onClick={() => {
+                  const token = sessionStorage.getItem("token");
+                  if (!token) { alert("Bitte melde dich zuerst an."); return; }
+                  fetch(`${API_URL}/api/raeume/belegen/${b.id}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` },
+                  }).then(async () => {
+                    const [hausDaten, belegungenData] = await Promise.all([
+                      fetch(`${API_URL}/api/haeuser/${ausgewaehltesHaus.id}/raeume`).then((r) => r.json()),
+                      fetch(`${API_URL}/api/raeume/`).then((r) => r.json()),
+                    ]);
+                    const belegungen = belegungenData.belegungen || [];
+                    const raeumeMitBelegungen = hausDaten.raeume.map((r) => {
+                      const raumBelegungen = belegungen.filter((b) => b.raum_id === r.id && b.haus_id === ausgewaehltesHaus.id);
+                      if (raumBelegungen.length > 0) {
+                        return { ...r, belegt: true, belegungen: raumBelegungen, belegung_id: raumBelegungen[0].id, professor: raumBelegungen[0].professor, modul: raumBelegungen[0].modul, von: raumBelegungen[0].von, bis: raumBelegungen[0].bis };
+                      }
+                      return { ...r, belegt: false, belegungen: [] };
+                    });
+                    const hausMitRaeumen = { ...ausgewaehltesHaus, raeume: raeumeMitBelegungen };
+                    setHaeuser((prev) => prev.map((h) => h.id === ausgewaehltesHaus.id ? hausMitRaeumen : h));
+                    setAusgewaehltesHaus(hausMitRaeumen);
+                    const aktualisiertesRaum = raeumeMitBelegungen.find((r) => r.id === ausgewaehltesRaum.id);
+                    setAusgewaehltesRaum(aktualisiertesRaum);
+                  });
+                }}
+                style={{ fontSize: 12, padding: "4px 12px", background: "var(--green)", color: "white", border: "none", borderRadius: "var(--radius)", cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                Raum freigeben
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Neue Belegung hinzufügen ─────────────────────────── */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
+        <div style={{ flex: 1 }}>
+          <label className="login-label">Professor</label>
+          <input className="login-input" placeholder="z.B. Prof. Dr. Roschke" value={formular.professor} onChange={(e) => setFormular({ ...formular, professor: e.target.value })} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label className="login-label">Modul</label>
+          <input className="login-input" placeholder="z.B. Informatik II" value={formular.modul} onChange={(e) => setFormular({ ...formular, modul: e.target.value })} />
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <label className="login-label">Von</label>
+          <input className="login-input" placeholder="13:00" value={formular.von}
+            style={{ border: formular.von ? "1px solid var(--green)" : undefined, color: formular.von ? "var(--green)" : undefined }}
+            onChange={(e) => setFormular({ ...formular, von: e.target.value })} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label className="login-label">Bis (max 3h)</label>
+          <input className="login-input" placeholder="14:30" value={formular.bis}
+            style={{ border: formular.bis ? "1px solid var(--green)" : undefined, color: formular.bis ? "var(--green)" : undefined }}
+            onChange={(e) => setFormular({ ...formular, bis: e.target.value })} />
+        </div>
+      </div>
+      <button onClick={raumToggle} className="btn-primary"
+        style={{ background: "var(--red)", width: "100%", padding: "10px 20px" }}>
+        Raum belegen
+      </button>
+    </div>
+  </div>
+)}
+                    </div>
+                  ))}
+              </div>
             </>
           )}
         </div>
