@@ -100,6 +100,25 @@ def alle_haeuser_leicht(db: Session = Depends(get_db)):
     """
     haeuser = db.query(HausDB).all()
     return [{"id": h.id, "name": h.name} for h in haeuser]
+@router.get("/freie-raeume")
+def freie_raeume_pro_haus(db: Session = Depends(get_db)):
+    """
+    GET /api/haeuser/freie-raeume
+    Gibt für jedes Haus die Anzahl freier und belegter Räume zurück.
+    Wird für die Haus-Buttons im Raumfinder genutzt.
+    """
+    from routers.raeume import BelegungDB
+    # Alle belegten Raum-IDs aus der Datenbank holen
+    belegte_raum_ids = {b.raum_id for b in db.query(BelegungDB).all()}
+    haeuser = db.query(HausDB).all()
+    return [
+        {
+            "id": h.id,
+            "gesamt": len(h.raeume),
+            "frei": sum(1 for r in h.raeume if r.id not in belegte_raum_ids),
+        }
+        for h in haeuser
+    ]
 
 @router.get("/summary")
 def haeuser_summary(db: Session = Depends(get_db)):

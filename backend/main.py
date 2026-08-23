@@ -25,8 +25,8 @@ from routers.kontakte import router as kontakte_router
 from routers.news import router as news_router
 
 # ── FABIAN: Raeume-Router ─────────────────────────────────
-from routers.raeume import router as raeume_router  
-from routers.haeuser import router as haeuser_router   
+from routers.raeume import router as raeume_router, BelegungDB  # noqa: F401 (für create_all)
+from routers.haeuser import router as haeuser_router  
 
 # ── JEROME: Auth / Login Router ──────────────────────────────────────────
 # [MERGE: Claude] Hinzugefügt. Jerome's Login-Endpunkte als Router eingebunden.

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 # HTTPException für Fehlermeldungen
 from sqlalchemy.orm import Session
 # Session für den Datenbankzugriff
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, String, ForeignKey, Integer
 # Spalten-Typen für das Datenbankmodell
 from pydantic import BaseModel
 # BaseModel für die Eingabe-Validierung
@@ -18,14 +18,16 @@ router = APIRouter(prefix="/api/raeume", tags=["Raeume"])
 
 # ── Datenbankmodell für Belegungen ────────────────────────────────────────
 class BelegungDB(Base):
-    # Tabelle für Raumbelegungen in der Datenbank
     __tablename__ = "belegungen"
-    raum_id   = Column(String, ForeignKey("raeume.id"), primary_key=True)
+    id        = Column(Integer, primary_key=True, autoincrement=True)
+    # id = eindeutiger Schlüssel, automatisch hochgezählt
+    raum_id   = Column(String, ForeignKey("raeume.id"), nullable=False)
+    # raum_id = Verweis auf den Raum (jetzt kein Primärschlüssel mehr)
     haus_id   = Column(String, ForeignKey("haeuser.id"), nullable=False)
-    professor = Column(String, nullable=False)  # z.B. "Prof. Dr. Roschke"
-    modul     = Column(String, nullable=False)  # z.B. "Informatik II"
-    von       = Column(String, nullable=False)  # z.B. "13:00"
-    bis       = Column(String, nullable=False)  # z.B. "14:30"
+    professor = Column(String, nullable=False)
+    modul     = Column(String, nullable=False)
+    von       = Column(String, nullable=False)
+    bis       = Column(String, nullable=False)
 
 # ── Pydantic Modell für die Eingabe-Validierung ───────────────────────────
 class Belegung(BaseModel):
@@ -46,8 +48,10 @@ def alle_belegungen(db: Session = Depends(get_db)):
     """
     belegungen = db.query(BelegungDB).all()
     return {
-        "belegungen": {
-            f"{b.haus_id}_{b.raum_id}": {
+        "belegungen": [
+            {
+                "id":        b.id,
+                # id der Belegung, wird zum Löschen gebraucht
                 "haus_id":   b.haus_id,
                 "raum_id":   b.raum_id,
                 "professor": b.professor,
@@ -56,7 +60,7 @@ def alle_belegungen(db: Session = Depends(get_db)):
                 "bis":       b.bis,
             }
             for b in belegungen
-        }
+        ]
     }
 
 @router.post("/belegen")
@@ -65,17 +69,18 @@ def raum_belegen(
     db: Session = Depends(get_db),
     nutzer: str = Depends(get_current_user)  # Login-Schutz
 ):
-    """
-    POST /api/raeume/belegen
-    Speichert eine Raumbelegung dauerhaft in der Datenbank.
-    Nur für eingeloggte Nutzer.
-    """
-    # Prüfen ob der Raum bereits belegt ist
-    vorhandene_belegung = db.query(BelegungDB).filter(
-        BelegungDB.raum_id == belegung.raum_id
+    # Prüfen ob sich der neue Zeitslot mit einer bestehenden Belegung überschneidet
+    # Überschneidung liegt vor wenn: neue_von < bestehende_bis UND neue_bis > bestehende_von
+    ueberschneidung = db.query(BelegungDB).filter(
+        BelegungDB.raum_id == belegung.raum_id,
+        BelegungDB.von < belegung.bis,
+        BelegungDB.bis > belegung.von,
     ).first()
-    if vorhandene_belegung:
-        raise HTTPException(status_code=400, detail="Raum ist bereits belegt")
+    if ueberschneidung:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Dieser Zeitraum überschneidet sich mit einer bestehenden Belegung ({ueberschneidung.von}–{ueberschneidung.bis} Uhr)"
+        )
 
     # Neue Belegung in der Datenbank speichern
     neue_belegung = BelegungDB(
@@ -90,23 +95,22 @@ def raum_belegen(
     db.commit()
     return {"message": "Raum erfolgreich belegt"}
 
-@router.delete("/belegen/{haus_id}/{raum_id}")
+@router.delete("/belegen/{belegung_id}")
 def raum_freigeben(
-    haus_id: str,
-    raum_id: str,
+    belegung_id: int,
     db: Session = Depends(get_db),
     nutzer: str = Depends(get_current_user)  # Login-Schutz
 ):
     """
-    DELETE /api/raeume/belegen/{haus_id}/{raum_id}
-    Löscht eine Raumbelegung dauerhaft aus der Datenbank.
+    DELETE /api/raeume/belegen/{belegung_id}
+    Löscht eine einzelne Belegung anhand ihrer ID aus der Datenbank.
     Nur für eingeloggte Nutzer.
     """
     belegung = db.query(BelegungDB).filter(
-        BelegungDB.raum_id == raum_id
+        BelegungDB.id == belegung_id
     ).first()
     if not belegung:
-        raise HTTPException(status_code=404, detail="Raum ist nicht belegt")
+        raise HTTPException(status_code=404, detail="Belegung nicht gefunden")
     db.delete(belegung)
     db.commit()
-    return {"message": "Raum erfolgreich freigegeben"}
+    return {"message": "Belegung erfolgreich gelöscht"}
