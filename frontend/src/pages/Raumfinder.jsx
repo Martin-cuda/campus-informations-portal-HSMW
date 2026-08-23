@@ -110,6 +110,8 @@ export default function Raumfinder() {
 
   const [ladeFehler, setLadeFehler] = useState(null);
   // ladeFehler = Fehlertext wenn Räume nicht geladen werden konnten (null = kein Fehler)
+  const [erfolgsMeldung, setErfolgsMeldung] = useState(null);
+  // erfolgsMeldung = grüne Toast-Nachricht nach erfolgreichem Belegen (null = keine)
 
   // ── Lazy Loading: Beim Start nur die Gebäudeliste laden ───────────────
   // Statt alle 800+ Räume sofort zu laden, holen wir zuerst nur Namen und IDs.
@@ -241,6 +243,9 @@ export default function Raumfinder() {
       alert(fehler.detail || "Dieser Zeitraum ist bereits reserviert.");
       return;
     }
+    // Erfolgsmeldung anzeigen und nach 3 Sekunden automatisch ausblenden
+    setErfolgsMeldung("Raum erfolgreich belegt!");
+    setTimeout(() => setErfolgsMeldung(null), 3000);
     // Fenster schließen und Haus neu laden damit Zeitstrahl aktualisiert wird
     setAusgewaehltesRaum(null);
     const hausOhneRaeume = { ...ausgewaehltesHaus, raeume: null };
@@ -254,7 +259,25 @@ export default function Raumfinder() {
         <div className="page-title">Raumfinder</div>
         <div className="page-subtitle">Gebäude & Belegungsstatus · HS Mittweida</div>
       </div>
-
+            {/* ── Erfolgsmeldung (Toast) ─────────────────────────────────────────
+          Erscheint nach erfolgreichem Belegen und verschwindet nach 3 Sekunden */}
+      {erfolgsMeldung && (
+        <div style={{
+          position: "fixed",
+          bottom: "2rem",
+          right: "2rem",
+          backgroundColor: "var(--green)",
+          color: "white",
+          padding: "12px 24px",
+          borderRadius: "var(--radius)",
+          fontSize: 14,
+          fontWeight: 600,
+          zIndex: 1000,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+        }}>
+          ✓ {erfolgsMeldung}
+        </div>
+      )}
       {/* ── Häuser-Auswahl mit Suchfeld ────────────────────────────────────
           Das Suchfeld filtert die Haus-Buttons in Echtzeit nach Gebäudename.
           Nur Frontend-Logik, kein Backend-Request nötig.
@@ -278,7 +301,7 @@ export default function Raumfinder() {
             display: "block",
           }}
         />
-                {/* Zeitfilter für Haus-Buttons */}
+        {/* Zeitfilter für Haus-Buttons */}
         <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "1rem" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Zeitraum Von</label>
@@ -329,13 +352,13 @@ export default function Raumfinder() {
                   transition: "all 0.15s",
                 }}
               >
-                                {haus.name}
+                {haus.name}
                 <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>
                   {haus.raeume !== null
                     ? haus.raeume.filter((r) => {
-                        if (!filterVon || !filterBis) return !r.belegt;
-                        return !(r.belegungen || []).some((b) => b.von < filterBis && b.bis > filterVon);
-                      }).length
+                      if (!filterVon || !filterBis) return !r.belegt;
+                      return !(r.belegungen || []).some((b) => b.von < filterBis && b.bis > filterVon);
+                    }).length
                     : haus.anzahlFrei} frei
                   {filterVon && filterBis && (
                     <span style={{ opacity: 0.7 }}> ({filterVon}–{filterBis})</span>

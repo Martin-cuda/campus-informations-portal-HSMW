@@ -167,9 +167,14 @@ function RequireAdmin({ children }) {
 
 function AppInner() {
   const [extraModules, setExtraModules] = useState([]);
-  const [modulesLoaded, setLoaded]      = useState(false);
-  const [isAdmin, setIsAdmin]           = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
+  const [modulesLoaded, setLoaded] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    // Gespeichertes Theme bevorzugen, sonst System-Präferenz prüfen
+    const gespeichert = localStorage.getItem("theme");
+    if (gespeichert) return gespeichert;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -218,7 +223,7 @@ function AppInner() {
       });
     return () => { abgebrochen = true; };
   }, []);
- 
+
   // Modul hinzufügen ODER ein archiviertes wieder aktivieren (active:true)
   const addModule = async (mod) => {
     const aktiv = { ...mod, active: mod.active !== false };  // neu erstellte Module können inaktiv sein
@@ -277,55 +282,55 @@ function AppInner() {
   const archivedModules = extraModules.filter((m) => m.active === false);
 
   return (
-      <div className="app-shell">
-        <NewsTicker />
-        <Navbar modules={allModules} isAdmin={isAdmin} theme={theme} onToggleTheme={toggleTheme} onLogout={handleLogout} />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Dashboard modules={allModules} loaded={modulesLoaded} onRemove={removeModule} />} />
-            <Route path="/mensa"         element={<Mensa />} />
-            <Route path="/mensa/legende" element={<MensaLegende />} />
-            <Route path="/news"          element={<News />} />
-            <Route path="/news/:newsId"  element={<NewsDetail />} />
-            <Route path="/fakultaeten"    element={<Faculties />} />
-            <Route path="/kontakt"                element={<Kontakte />} />
-            <Route path="/kontakt/:nutzerkuerzel" element={<KontaktDetail />} />
-            <Route path="/admin"         element={<AdminLogin />} />
-            <Route path="/module-add"    element={<RequireAdmin><ModuleAdd onAdd={addModule} onRemove={removeModule} onReorder={reorderModules} existing={allModules} manageItems={allModules} archived={archivedModules} onDelete={deleteModule} /></RequireAdmin>} />
-            {/* [MERGE: Claude] Fabian's Raumfinder-Route ─────────────── */}
-            <Route path="/raumfinder"    element={<Raumfinder />} />
-            {/* [MERGE] Aris Admin-Dashboard-Route */}
-            <Route path="/admin/dashboard" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
+    <div className="app-shell">
+      <NewsTicker />
+      <Navbar modules={allModules} isAdmin={isAdmin} theme={theme} onToggleTheme={toggleTheme} onLogout={handleLogout} />
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<Dashboard modules={allModules} loaded={modulesLoaded} onRemove={removeModule} />} />
+          <Route path="/mensa" element={<Mensa />} />
+          <Route path="/mensa/legende" element={<MensaLegende />} />
+          <Route path="/news" element={<News />} />
+          <Route path="/news/:newsId" element={<NewsDetail />} />
+          <Route path="/fakultaeten" element={<Faculties />} />
+          <Route path="/kontakt" element={<Kontakte />} />
+          <Route path="/kontakt/:nutzerkuerzel" element={<KontaktDetail />} />
+          <Route path="/admin" element={<AdminLogin />} />
+          <Route path="/module-add" element={<RequireAdmin><ModuleAdd onAdd={addModule} onRemove={removeModule} onReorder={reorderModules} existing={allModules} manageItems={allModules} archived={archivedModules} onDelete={deleteModule} /></RequireAdmin>} />
+          {/* [MERGE: Claude] Fabian's Raumfinder-Route ─────────────── */}
+          <Route path="/raumfinder" element={<Raumfinder />} />
+          {/* [MERGE] Aris Admin-Dashboard-Route */}
+          <Route path="/admin/dashboard" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
 
-            {extraModules
-              .filter((mod) => !STATIC_PATHS.has(mod.path))
-              .map((mod) => (
-                <Route key={mod.id} path={mod.path} element={<ComingSoon module={mod} />} />
-              ))}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-        <footer className="uchicago-footer" aria-label="Seitenabschluss">
-          <div className="uchicago-footer-inner">
-            <div className="uchicago-footer-brand">
-              <span>Hochschule Mittweida</span>
-              <strong>bttrhsmw</strong>
-            </div>
-
-            <nav className="uchicago-footer-links" aria-label="Fußnavigation">
-              <a href="https://www.hs-mittweida.de/">Hochschule</a>
-              <a href="https://www.hs-mittweida.de/newsampservice/kontakt/">Kontakt</a>
-              <a href="https://www.hs-mittweida.de/impressum/">Impressum</a>
-              <a href="https://www.hs-mittweida.de/datenschutz/">Datenschutz</a>
-            </nav>
-
-            <div className="uchicago-footer-meta">
-              Einführung in die Informatik 2 Gruppe 5 Campus Informations Portal
-              <br />
-              Version 1.0.0 Final
-            </div>
+          {extraModules
+            .filter((mod) => !STATIC_PATHS.has(mod.path))
+            .map((mod) => (
+              <Route key={mod.id} path={mod.path} element={<ComingSoon module={mod} />} />
+            ))}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+      <footer className="uchicago-footer" aria-label="Seitenabschluss">
+        <div className="uchicago-footer-inner">
+          <div className="uchicago-footer-brand">
+            <span>Hochschule Mittweida</span>
+            <strong>bttrhsmw</strong>
           </div>
-        </footer>
-      </div>
+
+          <nav className="uchicago-footer-links" aria-label="Fußnavigation">
+            <a href="https://www.hs-mittweida.de/">Hochschule</a>
+            <a href="https://www.hs-mittweida.de/newsampservice/kontakt/">Kontakt</a>
+            <a href="https://www.hs-mittweida.de/impressum/">Impressum</a>
+            <a href="https://www.hs-mittweida.de/datenschutz/">Datenschutz</a>
+          </nav>
+
+          <div className="uchicago-footer-meta">
+            Einführung in die Informatik 2 Gruppe 5 Campus Informations Portal
+            <br />
+            Version 1.0.0 Final
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
