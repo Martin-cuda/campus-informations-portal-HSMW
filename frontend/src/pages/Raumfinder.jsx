@@ -259,21 +259,24 @@ export default function Raumfinder() {
         <div className="page-title">Raumfinder</div>
         <div className="page-subtitle">Gebäude & Belegungsstatus · HS Mittweida</div>
       </div>
-            {/* ── Erfolgsmeldung (Toast) ─────────────────────────────────────────
+      {/* ── Erfolgsmeldung (Toast) ─────────────────────────────────────────
           Erscheint nach erfolgreichem Belegen und verschwindet nach 3 Sekunden */}
-      {erfolgsMeldung && (
+          {erfolgsMeldung && (
         <div style={{
           position: "fixed",
-          bottom: "2rem",
-          right: "2rem",
+          top: "120px",
+          left: "50%",
+          transform: "translateX(-50%)",
           backgroundColor: "var(--green)",
           color: "white",
-          padding: "12px 24px",
+          padding: "12px 32px",
           borderRadius: "var(--radius)",
           fontSize: 14,
           fontWeight: 600,
+          textAlign: "center",
           zIndex: 1000,
           boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          whiteSpace: "nowrap",
         }}>
           ✓ {erfolgsMeldung}
         </div>
