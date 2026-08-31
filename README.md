@@ -16,35 +16,30 @@ Das Portal bündelt unter anderem:
 
 ---
 
-## 1. Voraussetzungen
+# 1. Voraussetzungen
 
-Für die lokale Ausführung werden folgende Komponenten benötigt:
+Für die lokale Ausführung werden folgende Komponenten benötigt.
 
-### Backend
+## Backend
 
 * Python 3.11 oder neuer
-* `pip`
-* PostgreSQL-Datenbank bzw. eine kompatible PostgreSQL-Instanz
-* Internetzugang für externe Schnittstellen
+* pip
+* Internetzugang
 
-### Frontend
+## Frontend
 
 * Node.js
 * npm
 
-### Optionale beziehungsweise funktionsabhängige Dienste
+Das Backend verwendet eine PostgreSQL-Datenbank. Für die bereitgestellte Abgabe wird die konfigurierte Datenbankverbindung verwendet. Eine lokale PostgreSQL-Installation ist daher für die normale Korrektur nicht erforderlich, sofern die bereitgestellte Konfiguration verwendet werden kann.
 
-Je nach verwendeten Funktionen werden zusätzlich Zugangsdaten für externe Dienste benötigt:
-
-* PostgreSQL / Neon für die Datenbank
-* SMTP-Zugang für den Versand von E-Mails
-* gegebenenfalls weitere Zugangsdaten für externe APIs
+Für einzelne Funktionen, beispielsweise den E-Mail-Versand, können zusätzliche externe Konfigurationen erforderlich sein.
 
 ---
 
-## 2. Projektstruktur
+# 2. Projektstruktur
 
-Das Projekt ist in Frontend und Backend aufgeteilt:
+Das Projekt ist in ein Frontend und ein Backend aufgeteilt:
 
 ```text
 campus-informations-portal-HSMW/
@@ -55,21 +50,24 @@ campus-informations-portal-HSMW/
 │   ├── auth.py
 │   ├── security.py
 │   ├── admin_guard.py
+│   ├── recovery.py
+│   ├── models.py
+│   ├── services/
 │   └── routers/
-│       ├── auth.py
-│       ├── news.py
 │       ├── mensa.py
-│       ├── module.py
+│       ├── modules.py
+│       ├── kontakte.py
+│       ├── news.py
 │       ├── raeume.py
-│       └── ...
+│       ├── haeuser.py
+│       ├── login_router.py
+│       ├── admin_metrics.py
+│       └── mensa_notify.py
 │
 ├── frontend/
 │   ├── package.json
 │   └── src/
 │       └── ...
-│
-├── docs/
-│   └── ...
 │
 ├── scripts/
 │   └── ...
@@ -79,13 +77,13 @@ campus-informations-portal-HSMW/
 └── ...
 ```
 
-Das Backend basiert auf **FastAPI** und übernimmt unter anderem die REST-Schnittstellen, Authentifizierung, Datenbankzugriffe und Geschäftslogik.
+Das Backend basiert auf **FastAPI** und stellt die REST-Schnittstellen bereit. Zusätzlich übernimmt es unter anderem Authentifizierung, Datenbankzugriffe und Geschäftslogik.
 
 Das Frontend stellt die Benutzeroberfläche bereit und kommuniziert über die REST-API mit dem Backend.
 
 ---
 
-## 3. Repository klonen
+# 3. Repository klonen
 
 Das Projekt kann mit Git geklont werden:
 
@@ -94,13 +92,15 @@ git clone https://github.com/Martin-cuda/campus-informations-portal-HSMW.git
 cd campus-informations-portal-HSMW
 ```
 
+Alternativ kann das bereitgestellte ZIP-Archiv verwendet und lokal entpackt werden.
+
 ---
 
-## 4. Backend einrichten
+# 4. Backend einrichten
 
 Für das Backend wird eine virtuelle Python-Umgebung verwendet.
 
-### 4.1 Virtuelle Umgebung erstellen
+## 4.1 Virtuelle Umgebung erstellen
 
 Der folgende Befehl wird im **Projekt-Hauptverzeichnis** ausgeführt:
 
@@ -108,21 +108,21 @@ Der folgende Befehl wird im **Projekt-Hauptverzeichnis** ausgeführt:
 python -m venv .venv
 ```
 
-### 4.2 Virtuelle Umgebung aktivieren
+## 4.2 Virtuelle Umgebung aktivieren
 
-#### Windows – Eingabeaufforderung (CMD)
+### Windows – CMD
 
 ```cmd
 .venv\Scripts\activate
 ```
 
-#### Windows – PowerShell
+### Windows – PowerShell
 
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
 
-#### Linux / macOS
+### Linux / macOS
 
 ```bash
 source .venv/bin/activate
@@ -132,7 +132,7 @@ Nach erfolgreicher Aktivierung sollte `(.venv)` am Anfang der Terminalzeile ange
 
 ---
 
-## 5. Python-Abhängigkeiten installieren
+# 5. Python-Abhängigkeiten installieren
 
 Nach Aktivierung der virtuellen Umgebung werden die benötigten Python-Pakete installiert:
 
@@ -140,72 +140,90 @@ Nach Aktivierung der virtuellen Umgebung werden die benötigten Python-Pakete in
 pip install -r requirements.txt
 ```
 
-Die Abhängigkeiten des Backends sind in der Datei `requirements.txt` definiert.
+Die verwendeten Python-Abhängigkeiten sind in der Datei `requirements.txt` festgelegt.
 
 ---
 
-## 6. Umgebungsvariablen konfigurieren
+# 6. Backend-Konfiguration
 
-Für den Betrieb des Backends werden verschiedene Konfigurationswerte benötigt.
+Das Backend benötigt Konfigurationswerte für den Datenbankzugriff und weitere Funktionen.
 
-Dazu gehören insbesondere Einstellungen für:
-
-* Datenbankverbindung
-* Authentifizierung
-* Backend-URL
-* Frontend-URL
-* gegebenenfalls E-Mail-Versand
-
-Beispielsweise werden folgende Umgebungsvariablen verwendet:
+Für die bereitgestellte Abgabe ist die benötigte Konfiguration bereits vorbereitet. Sofern eine `backend/.env` Bestandteil der bereitgestellten ZIP-Abgabe ist, befindet sie sich an folgender Stelle:
 
 ```text
-DATABASE_URL=<PostgreSQL-Verbindungsstring>
-SECRET_KEY=<geheimer-Schlüssel>
-PUBLIC_BASE_URL=http://localhost:8000
-FRONTEND_BASE_URL=http://localhost:5173
+backend/.env
 ```
 
-Für Funktionen wie den E-Mail-Versand müssen zusätzlich die entsprechenden SMTP-Zugangsdaten konfiguriert werden.
+Die Datei enthält die für den Betrieb des Backends benötigten Umgebungsvariablen, insbesondere die Datenbankverbindung und weitere Backend-Konfigurationen.
 
-> **Wichtig:** Echte Zugangsdaten, Passwörter, API-Schlüssel oder geheime Schlüssel dürfen nicht in das Git-Repository eingecheckt werden.
+Für die normale Korrektur muss daher grundsätzlich keine eigene PostgreSQL-Datenbank eingerichtet werden, sofern die mitgelieferte Konfiguration verwendet werden kann.
 
-Die benötigten Umgebungsvariablen müssen vor dem Start des Backends entsprechend der lokalen beziehungsweise bereitgestellten Konfiguration gesetzt werden.
+> **Wichtig:** Die `.env` enthält sensible Konfigurationsdaten und sollte nicht in einem öffentlichen Repository veröffentlicht werden. Zugangsdaten und geheime Schlüssel dürfen nicht öffentlich weitergegeben werden.
+
+Falls die Anwendung ohne die bereitgestellte Konfiguration eingerichtet wird, müssen die entsprechenden Umgebungsvariablen für die eigene Umgebung angepasst werden.
 
 ---
 
-## 7. Backend starten
+# 7. Datenbank
 
-Für den Start des Backends wird zunächst in das Backend-Verzeichnis gewechselt:
+Das Backend verwendet PostgreSQL als Datenbank.
+
+Die Datenbankverbindung wird über die Backend-Konfiguration bereitgestellt.
+
+Beim Start des Backends werden die im Projekt definierten Datenbanktabellen über die vorhandene SQLAlchemy-Konfiguration initialisiert beziehungsweise angelegt, sofern sie noch nicht vorhanden sind.
+
+Eine manuelle Ausführung eines zusätzlichen Datenbank-Initialisierungsschrittes ist für den normalen Start der bereitgestellten Projektversion daher nicht erforderlich.
+
+Für die vollständige Funktionalität werden die für die Anwendung benötigten Daten, beispielsweise Gebäude, Räume, News und Raumbelegungen, über die verwendete Datenbank bereitgestellt.
+
+---
+
+# 8. Backend starten
+
+## Wichtig
+
+Das Backend muss aus dem **`backend`-Verzeichnis** gestartet werden.
+
+Der korrekte Ablauf lautet:
 
 ```bash
 cd backend
-```
-
-Anschließend wird der FastAPI-Server gestartet:
-
-```bash
 uvicorn main:app --reload
 ```
 
-Das Backend ist anschließend unter folgender Adresse erreichbar:
+**Nicht** aus dem Projekt-Hauptverzeichnis mit folgendem Befehl starten:
+
+```bash
+uvicorn backend.main:app --reload
+```
+
+Der Grund dafür ist die Modulstruktur des Backends. `main.py` verwendet beispielsweise Imports der Form:
+
+```python
+from routers.mensa import router as mensa_router
+from routers.news import router as news_router
+from routers.raeume import router as raeume_router
+```
+
+Daher muss das `backend`-Verzeichnis beim Start als Arbeitsverzeichnis verwendet werden.
+
+Nach erfolgreichem Start ist das Backend unter folgender Adresse erreichbar:
 
 ```text
 http://localhost:8000
 ```
 
-Die automatisch generierte Swagger-Dokumentation der REST-API ist unter folgender Adresse erreichbar:
+Die automatisch generierte Swagger-Dokumentation der REST-API ist unter folgender Adresse verfügbar:
 
 ```text
 http://localhost:8000/docs
 ```
 
-> **Wichtig:** Der Befehl `uvicorn main:app --reload` muss aus dem `backend`-Verzeichnis ausgeführt werden. Das Backend verwendet Module aus diesem Verzeichnis, unter anderem die Router unter `backend/routers/`.
-
 Das Terminal mit dem laufenden Backend muss während der Nutzung des Frontends geöffnet bleiben.
 
 ---
 
-## 8. Frontend einrichten
+# 9. Frontend einrichten
 
 Das Frontend wird in einem **zweiten Terminal-Fenster** gestartet.
 
@@ -217,7 +235,7 @@ Anschließend:
 cd frontend
 ```
 
-Die benötigten Node.js-Abhängigkeiten werden mit folgendem Befehl installiert:
+Die benötigten Node.js-Abhängigkeiten werden installiert mit:
 
 ```bash
 npm install
@@ -225,7 +243,7 @@ npm install
 
 ---
 
-## 9. Frontend starten
+# 10. Frontend starten
 
 Nach der Installation der Abhängigkeiten wird der Entwicklungsserver gestartet:
 
@@ -233,7 +251,7 @@ Nach der Installation der Abhängigkeiten wird der Entwicklungsserver gestartet:
 npm run dev
 ```
 
-Das Frontend ist anschließend normalerweise unter folgender Adresse erreichbar:
+Das Frontend ist anschließend unter folgender Adresse erreichbar:
 
 ```text
 http://localhost:5173/
@@ -241,11 +259,11 @@ http://localhost:5173/
 
 ---
 
-## 10. Projekt starten – vollständiger Ablauf
+# 11. Vollständiger Startablauf
 
 Für die lokale Ausführung werden **zwei separate Terminal-Fenster** benötigt.
 
-### Terminal 1 – Backend
+## Terminal 1 – Backend
 
 Im Projekt-Hauptverzeichnis:
 
@@ -255,25 +273,25 @@ python -m venv .venv
 
 Virtuelle Umgebung aktivieren.
 
-**Windows CMD:**
+### Windows CMD
 
 ```cmd
 .venv\Scripts\activate
 ```
 
-**Windows PowerShell:**
+### Windows PowerShell
 
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
 
-**Linux / macOS:**
+### Linux / macOS
 
 ```bash
 source .venv/bin/activate
 ```
 
-Danach:
+Danach die Python-Abhängigkeiten installieren:
 
 ```bash
 pip install -r requirements.txt
@@ -305,7 +323,7 @@ http://localhost:8000/docs
 
 ---
 
-### Terminal 2 – Frontend
+## Terminal 2 – Frontend
 
 Das zweite Terminal wird im **Projekt-Hauptverzeichnis** geöffnet.
 
@@ -335,36 +353,57 @@ erreichbar.
 
 ---
 
-## 11. Übersicht der wichtigsten Adressen
+# 12. Übersicht der wichtigsten Adressen
 
-| Komponente                | Adresse                    |
-| ------------------------- | -------------------------- |
-| Frontend                  | http://localhost:5173/     |
-| Backend                   | http://localhost:8000      |
-| Swagger API-Dokumentation | http://localhost:8000/docs |
+| Komponente                | Adresse                      |
+| ------------------------- | ---------------------------- |
+| Frontend                  | `http://localhost:5173/`     |
+| Backend                   | `http://localhost:8000`      |
+| Swagger API-Dokumentation | `http://localhost:8000/docs` |
 
 ---
 
-## 12. Authentifizierung
+# 13. Authentifizierung
 
 Bestimmte Funktionen des Portals sind nur für eingeloggte Nutzer verfügbar.
 
-Dazu gehört insbesondere die Verwaltung von Raumbelegungen.
+Dazu gehören insbesondere geschützte Funktionen wie die Verwaltung von Raumbelegungen.
 
-Das Backend überprüft bei geschützten Endpunkten, ob ein gültiger authentifizierter Benutzer vorhanden ist.
-
-Die Authentifizierung und sicherheitsbezogene Funktionen werden unter anderem über folgende Dateien umgesetzt:
+Die Authentifizierung und sicherheitsbezogene Funktionen werden unter anderem über folgende Komponenten umgesetzt:
 
 ```text
 backend/auth.py
 backend/security.py
+backend/routers/login_router.py
 ```
 
 ---
 
-## 13. Wichtige Funktionen
+# 14. Test-Zugangsdaten
 
-### 13.1 News
+Für die Korrektur werden Test-Zugangsdaten mit der Abgabe bereitgestellt.
+
+Die tatsächlichen Benutzerkonten und Passwörter befinden sich in der **separaten Textdatei innerhalb der bereitgestellten ZIP-Datei**.
+
+Dort sind die für die Bewertung vorgesehenen Zugangsdaten angegeben.
+
+Mit dem normalen Benutzerkonto können unter anderem folgende Funktionen getestet werden:
+
+* Anmeldung
+* geschützte Funktionen
+* Raumfinder
+* Raumbelegung
+* Verwaltung eigener Belegungen
+
+Mit dem Administratorkonto können zusätzlich die geschützten Funktionen des Administrationsbereichs getestet werden.
+
+> **Hinweis:** Die Test-Zugangsdaten sind ausschließlich für die Bewertung des Projekts vorgesehen und dürfen nicht öffentlich weitergegeben werden.
+
+---
+
+# 15. Wichtige Funktionen
+
+## 15.1 News
 
 Das Portal stellt aktuelle Hochschul-News zur Verfügung.
 
@@ -372,21 +411,27 @@ Die News können über das entsprechende Frontend-Modul aufgerufen werden.
 
 Für administrative Nutzer stehen zusätzliche Funktionen zur Verwaltung von News zur Verfügung.
 
-### 13.2 Mensa
+---
+
+## 15.2 Mensa
 
 Das Mensa-Modul stellt Informationen zum aktuellen Speiseangebot bereit.
 
 Zusätzlich ist eine Benachrichtigungsfunktion vorhanden, über die Nutzer über entsprechende Mensa-Informationen per E-Mail informiert werden können.
 
-Für den E-Mail-Versand müssen die entsprechenden SMTP-Zugangsdaten konfiguriert sein.
+Für den E-Mail-Versand müssen die entsprechenden SMTP-Konfigurationswerte verfügbar sein.
 
-### 13.3 Module
+---
+
+## 15.3 Module
 
 Das Modul-System stellt Informationen zu Studienmodulen bereit.
 
 Die Informationen können innerhalb des Portals aufgerufen und strukturiert dargestellt werden.
 
-### 13.4 Raumfinder
+---
+
+## 15.4 Raumfinder
 
 Der Raumfinder ermöglicht die Suche nach geeigneten beziehungsweise freien Räumen.
 
@@ -397,7 +442,9 @@ Dabei können unter anderem:
 * Zeiträume berücksichtigt werden
 * Raumbelegungen vorgenommen werden
 
-### 13.5 Raumbelegung
+---
+
+## 15.5 Raumbelegung
 
 Eingeloggte Nutzer können Räume für einen bestimmten Zeitraum belegen.
 
@@ -428,11 +475,11 @@ backend/routers/raeume.py
 
 ---
 
-## 14. REST-API
+# 16. REST-API
 
 Das Backend basiert auf FastAPI und stellt REST-Endpunkte für die einzelnen Funktionsbereiche bereit.
 
-Dazu gehören unter anderem Schnittstellen für:
+Die API umfasst unter anderem Bereiche für:
 
 ```text
 /api/auth
@@ -450,7 +497,7 @@ http://localhost:8000/docs
 
 ---
 
-## 15. Administrationsbereich
+# 17. Administrationsbereich
 
 Das Projekt besitzt einen geschützten Administrationsbereich.
 
@@ -462,9 +509,11 @@ Die entsprechenden Berechtigungsprüfungen werden unter anderem über folgende K
 backend/admin_guard.py
 ```
 
+Für die Überprüfung des Administrationsbereichs ist das in der Abgabe bereitgestellte Administratorkonto zu verwenden.
+
 ---
 
-## 16. Dark Mode und responsive Darstellung
+# 18. Dark Mode und responsive Darstellung
 
 Das Frontend unterstützt einen Dark Mode.
 
@@ -472,38 +521,63 @@ Die Benutzeroberfläche wurde außerdem für unterschiedliche Bildschirmgrößen
 
 ---
 
-## 17. Testen der Anwendung
+# 19. Testen der Anwendung
 
 Nach dem Start von Backend und Frontend können die wichtigsten Funktionen manuell getestet werden.
 
-### Test 1 – Anwendung starten
+## Test 1 – Anwendung starten
 
 1. Backend starten.
 2. Frontend starten.
 3. `http://localhost:5173/` im Browser öffnen.
 4. Prüfen, ob die Startseite korrekt geladen wird.
 
-### Test 2 – News
+**Erwartetes Ergebnis:**
+
+Die Startseite des Campus Informationsportals wird ohne Fehler geladen.
+
+---
+
+## Test 2 – News
 
 1. News-Bereich öffnen.
 2. Prüfen, ob News geladen werden.
 3. Eine News öffnen.
 4. Prüfen, ob die Inhalte korrekt dargestellt werden.
 
-### Test 3 – Mensa
+**Erwartetes Ergebnis:**
+
+Die verfügbaren News werden geladen und korrekt dargestellt.
+
+---
+
+## Test 3 – Mensa
 
 1. Mensa-Bereich öffnen.
 2. Prüfen, ob die Mensa-Informationen geladen werden.
 3. Prüfen, ob die Gerichte korrekt dargestellt werden.
 
-### Test 4 – Login
+**Erwartetes Ergebnis:**
+
+Die verfügbaren Mensa-Informationen werden angezeigt.
+
+---
+
+## Test 4 – Login
 
 1. Login-Seite öffnen.
-2. Mit gültigen Zugangsdaten anmelden.
-3. Prüfen, ob die Anmeldung erfolgreich durchgeführt wird.
-4. Eine geschützte Funktion aufrufen.
+2. Die Zugangsdaten aus der mitgelieferten Zugangsdaten-Datei verwenden.
+3. Anmeldung durchführen.
+4. Prüfen, ob die Anmeldung erfolgreich durchgeführt wird.
+5. Eine geschützte Funktion aufrufen.
 
-### Test 5 – Raumfinder
+**Erwartetes Ergebnis:**
+
+Der Benutzer wird erfolgreich authentifiziert und kann auf die für seine Rolle vorgesehenen geschützten Funktionen zugreifen.
+
+---
+
+## Test 5 – Raumfinder
 
 1. Raumfinder öffnen.
 2. Ein Gebäude auswählen.
@@ -511,9 +585,15 @@ Nach dem Start von Backend und Frontend können die wichtigsten Funktionen manue
 4. Einen Zeitraum auswählen.
 5. Prüfen, ob freie Räume angezeigt werden.
 
-### Test 6 – Raumbelegung
+**Erwartetes Ergebnis:**
 
-1. Einloggen.
+Die verfügbaren beziehungsweise freien Räume werden für den ausgewählten Zeitraum angezeigt.
+
+---
+
+## Test 6 – Raumbelegung
+
+1. Mit einem normalen Benutzerkonto einloggen.
 2. Einen freien Raum auswählen.
 3. Einen Zeitraum auswählen.
 4. Raum belegen.
@@ -521,14 +601,28 @@ Nach dem Start von Backend und Frontend können die wichtigsten Funktionen manue
 
 Anschließend kann versucht werden, denselben Raum im gleichen Zeitraum erneut zu belegen.
 
-Erwartetes Ergebnis:
+**Erwartetes Ergebnis:**
 
-```text
-Die zeitliche Überschneidung wird erkannt
-und die zweite Belegung wird abgelehnt.
-```
+Die zeitliche Überschneidung wird erkannt und die zweite Belegung wird abgelehnt.
 
-### Test 7 – Fehlerfälle
+---
+
+## Test 7 – Administrationsbereich
+
+1. Mit dem bereitgestellten Administratorkonto anmelden.
+2. Administrationsbereich öffnen.
+3. Verfügbare administrative Funktionen prüfen.
+4. Eine administrative Funktion testweise aufrufen.
+
+**Erwartetes Ergebnis:**
+
+Der Administrator kann auf die für seine Rolle vorgesehenen Funktionen zugreifen.
+
+Ein normaler Benutzer darf keinen Zugriff auf ausschließlich administrative Funktionen erhalten.
+
+---
+
+## Test 8 – Fehlerfälle
 
 Zusätzlich können folgende Fehlerfälle getestet werden:
 
@@ -542,66 +636,160 @@ Zusätzlich können folgende Fehlerfälle getestet werden:
 
 ---
 
-## 18. Fehlerbehebung
+# 20. Fehlerbehebung
 
-Bei Problemen können zunächst folgende Punkte überprüft werden:
+## Backend startet nicht
 
-| Problem                           | Mögliche Ursache                                         |
-| --------------------------------- | -------------------------------------------------------- |
-| Backend startet nicht             | Abhängigkeiten nicht installiert                         |
-| `ModuleNotFoundError`             | Backend nicht aus dem `backend`-Verzeichnis gestartet    |
-| Datenbankfehler                   | `DATABASE_URL` fehlt oder ist ungültig                   |
-| 401-Fehler                        | Benutzer nicht authentifiziert                           |
-| 403-Fehler                        | Fehlende Berechtigung                                    |
-| Frontend startet nicht            | Node.js/npm nicht installiert oder Abhängigkeiten fehlen |
-| Frontend kann API nicht erreichen | Backend läuft nicht                                      |
-| E-Mail-Versand funktioniert nicht | SMTP-Konfiguration fehlt oder ist ungültig               |
-
-Bei einem Python-Fehler sollte zunächst geprüft werden, ob die virtuelle Umgebung aktiviert wurde:
+Zunächst prüfen, ob die virtuelle Umgebung aktiviert wurde:
 
 ```bash
 python --version
 pip --version
 ```
 
-Außerdem sollten die Abhängigkeiten erneut installiert werden:
+Anschließend können die Abhängigkeiten erneut installiert werden:
 
 ```bash
 pip install -r requirements.txt
 ```
 
+Wichtig ist außerdem, dass das Backend aus dem richtigen Verzeichnis gestartet wird:
+
+```bash
+cd backend
+uvicorn main:app --reload
+```
+
+Nicht:
+
+```bash
+uvicorn backend.main:app --reload
+```
+
 ---
 
-## 19. Erweiterung und Wartung
+## `ModuleNotFoundError: No module named 'routers'`
+
+Wenn folgende Fehlermeldung erscheint:
+
+```text
+ModuleNotFoundError: No module named 'routers'
+```
+
+wurde das Backend wahrscheinlich aus dem falschen Verzeichnis gestartet.
+
+Lösung:
+
+```bash
+cd backend
+uvicorn main:app --reload
+```
+
+---
+
+## Datenbankfehler
+
+Bei Datenbankfehlern sollte zunächst geprüft werden, ob die verwendete Datenbankkonfiguration verfügbar und korrekt ist.
+
+Insbesondere sollte die Konfiguration der Datenbankverbindung überprüft werden.
+
+---
+
+## 401-Fehler
+
+Ein `401`-Fehler weist normalerweise darauf hin, dass der Benutzer nicht korrekt authentifiziert ist.
+
+In diesem Fall:
+
+1. erneut anmelden
+2. Zugangsdaten prüfen
+3. anschließend die geschützte Funktion erneut aufrufen
+
+---
+
+## 403-Fehler
+
+Ein `403`-Fehler weist auf fehlende Berechtigungen hin.
+
+Insbesondere administrative Funktionen benötigen die entsprechenden Berechtigungen.
+
+Für die Überprüfung des Administrationsbereichs sollte das bereitgestellte Administratorkonto verwendet werden.
+
+---
+
+## Frontend startet nicht
+
+Zunächst prüfen, ob Node.js und npm installiert sind.
+
+Danach:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Frontend kann Backend nicht erreichen
+
+Prüfen, ob das Backend läuft:
+
+```text
+http://localhost:8000
+```
+
+und ob die Swagger-Dokumentation erreichbar ist:
+
+```text
+http://localhost:8000/docs
+```
+
+Anschließend das Frontend erneut starten:
+
+```bash
+cd frontend
+npm run dev
+```
+
+---
+
+## E-Mail-Versand funktioniert nicht
+
+Der E-Mail-Versand benötigt eine funktionierende SMTP-Konfiguration.
+
+Wenn diese nicht vorhanden oder ungültig ist, können die übrigen Funktionen des Portals trotzdem getestet werden.
+
+---
+
+# 21. Erweiterung und Wartung
 
 Durch die Trennung von Frontend, Backend und einzelnen API-Routern kann das Projekt modular erweitert werden.
 
-Neue Backend-Funktionen können beispielsweise als eigener Router ergänzt werden:
+Neue Backend-Funktionen können beispielsweise als eigene Router unter folgendem Verzeichnis ergänzt werden:
 
 ```text
 backend/routers/
 ```
 
-Neue Datenbankobjekte können als entsprechende Datenbankmodelle umgesetzt werden.
+Änderungen an bestehenden API-Endpunkten müssen sowohl im Backend als auch bei den entsprechenden Frontend-Aufrufen berücksichtigt werden.
 
-Neue Benutzeroberflächen können im Frontend als zusätzliche Komponenten beziehungsweise Seiten ergänzt werden.
-
-Bei Änderungen an bestehenden API-Endpunkten sollten sowohl Backend als auch die entsprechenden Frontend-Aufrufe angepasst und anschließend getestet werden.
+Neue Funktionen sollten anschließend über die Swagger-Dokumentation und die Benutzeroberfläche getestet werden.
 
 ---
 
-## 20. Bekannte Einschränkungen
+# 22. Bekannte Einschränkungen
 
-Trotz des funktionsfähigen Projektstands bestehen einige Einschränkungen:
+Der aktuelle Projektstand besitzt unter anderem folgende Einschränkungen:
 
 * Es existieren keine umfangreichen automatisierten End-to-End-Tests.
 * Einige externe Datenquellen sind von ihrer jeweiligen Verfügbarkeit abhängig.
-* Für bestimmte Funktionen werden externe Dienste beziehungsweise Zugangsdaten benötigt.
+* Bestimmte Funktionen benötigen externe Dienste beziehungsweise entsprechende Konfigurationen.
 * Die Aktualität externer Informationen kann nicht vollständig durch das Portal kontrolliert werden.
 
 ---
 
-## 21. Repository und Entwicklung
+# 23. Entwicklung und Repository
 
 Die Entwicklung des Projekts wurde über Git und GitHub versioniert.
 
@@ -613,9 +801,11 @@ Die Commit-Historie dokumentiert die Entwicklung des Projekts und ermöglicht di
 
 ---
 
-## 22. Kurzfassung für den Start
+# 24. Kurzfassung – Startbefehle
 
-### Backend
+## Backend
+
+Im Projekt-Hauptverzeichnis:
 
 ```bash
 python -m venv .venv
@@ -629,7 +819,7 @@ cd backend
 uvicorn main:app --reload
 ```
 
-### Frontend
+## Frontend
 
 In einem zweiten Terminal im Projekt-Hauptverzeichnis:
 
@@ -639,7 +829,7 @@ npm install
 npm run dev
 ```
 
-Danach:
+## Anwendung öffnen
 
 ```text
 Frontend:
@@ -652,4 +842,4 @@ Swagger:
 http://localhost:8000/docs
 ```
 
-Damit ist das Campus Informationsportal lokal gestartet.
+Das Backend und das Frontend müssen gleichzeitig laufen, damit die vollständige Anwendung verwendet werden kann.
